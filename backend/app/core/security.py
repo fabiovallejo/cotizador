@@ -1,23 +1,23 @@
-import os
 from passlib.context import CryptContext
+import hashlib
+import os
 
-BCRYPT_ROUNDS = int(os.getenv("BCRYPT_ROUNDS", "12"))
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-)
+PEPPER = os.getenv("PASSWORD_PEPPER", "")
 
-def _apply_pepper(password: str) -> str:
-    pepper = os.getenv("PASSWORD_PEPPER", "")
-    return password + pepper
+def _prehash(password: str) -> str:
+    """
+    Normaliza longitud antes de bcrypt (72 bytes limit).
+    """
+    combined = (password + PEPPER).encode("utf-8")
+    return hashlib.sha256(combined).hexdigest()
 
 def hash_password(password: str) -> str:
-    if not password or len(password) < 8:
-        raise ValueError("La contraseña debe tener al menos 8 caracteres.")
-    return pwd_context.hash(_apply_pepper(password), rounds=BCRYPT_ROUNDS)
+    return pwd_context.hash(_prehash(password))
 
 def verify_password(password: str, password_hash: str) -> bool:
-    if not password or not password_hash:
-        return False
-    return pwd_context.verify(_apply_pepper(password), password_hash)
+    return pwd_context.verify(_prehash(password), password_hash)
+
+
+print("PEPPER EN USO:", PEPPER)
