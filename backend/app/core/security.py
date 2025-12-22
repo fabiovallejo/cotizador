@@ -7,9 +7,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 PEPPER = os.getenv("PASSWORD_PEPPER", "")
 
 def _prehash(password: str) -> str:
-    """
-    Normaliza longitud antes de bcrypt (72 bytes limit).
-    """
     combined = (password + PEPPER).encode("utf-8")
     return hashlib.sha256(combined).hexdigest()
 
@@ -18,6 +15,3 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, password_hash: str) -> bool:
     return pwd_context.verify(_prehash(password), password_hash)
-
-
-print("PEPPER EN USO:", PEPPER)
