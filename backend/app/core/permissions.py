@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import jsonify
-from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+from flask_jwt_extended import verify_jwt_in_request, get_jwt
 
 def require_roles(*allowed_roles):
     def decorator(fn):
@@ -11,9 +11,8 @@ def require_roles(*allowed_roles):
             verify_jwt_in_request()
 
             # Obtiene la identidad del token
-            identity = get_jwt_identity()
-
-            roles_usuario = identity.get("roles", [])
+            claims = get_jwt()
+            roles_usuario = claims.get("roles", [])
 
             # Verifica si el usuario tiene al menos uno de los roles permitidos
             if not any(role in roles_usuario for role in allowed_roles):

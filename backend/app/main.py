@@ -3,6 +3,7 @@ from flask_cors import CORS
 from app.core.jwt import jwt
 from app.core.config import settings
 from app.api.auth.routes import auth_bp
+from app.api.productos.routes import productos_bp
 
 def create_app():
     app = Flask(__name__)
@@ -12,6 +13,7 @@ def create_app():
     CORS(app, origins=settings.CORS_ORIGINS)
     jwt.init_app(app)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(productos_bp)
 
     return app
 

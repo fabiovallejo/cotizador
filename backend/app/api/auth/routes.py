@@ -33,7 +33,13 @@ def login():
                 "message": "Credenciales inválidas"
             }), 401
 
-        access_token = create_access_token(identity=user_data)
+        access_token = create_access_token(
+            identity=str(user_data["id_usuario"]),
+            additional_claims={
+                "id_empresa": user_data["id_empresa"],
+                "roles": user_data["roles"]
+            }
+        )
 
         return jsonify({
             "success": True,

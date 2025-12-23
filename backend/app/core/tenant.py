@@ -1,5 +1,4 @@
-from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import get_jwt
 
 def get_current_company_id():
-    identity = get_jwt_identity()
-    return identity.get("id_empresa")
+    return get_jwt()["id_empresa"]
