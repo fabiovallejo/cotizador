@@ -25,3 +25,5 @@ class Cotizacion(Base):
     total = Column(Numeric(12, 2), nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     ultima_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    items = relationship("CotizacionItem", back_populates="cotizacion")

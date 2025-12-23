@@ -12,7 +12,7 @@ class CotizacionItem(Base):
 
     id_cotizacionitem = Column(Integer, primary_key=True)
     id_cotizacion = Column(Integer, ForeignKey("Cotizaciones.id_cotizacion"), nullable=False)
-    cotizacion = relationship("Cotizacion")
+    cotizacion = relationship("Cotizacion", back_populates="items")
     id_producto = Column(Integer, ForeignKey("Productos.id_producto"), nullable=False)
     producto = relationship("Producto")
     nombre_producto = Column(String(255), nullable=False)
