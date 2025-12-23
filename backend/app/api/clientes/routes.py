@@ -2,28 +2,28 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 from app.core.permissions import require_roles
 from app.core.database import SessionLocal
-from app.services.producto_service import listar_productos, crear_producto
-from app.serializers.producto_serializer import producto_to_dict
+from app.services.cliente_service import listar_clientes, crear_cliente
+from app.serializers.cliente_serializer import cliente_to_dict
 
-productos_bp = Blueprint("productos", __name__, url_prefix="/api/v1/productos")
+clientes_bp = Blueprint("clientes", __name__, url_prefix="/api/v1/clientes")
 
-@productos_bp.route("/", methods=["GET"])
+@clientes_bp.route("/", methods=["GET"])
 @jwt_required()
 @require_roles("Owner", "Cotizador")
-def get_all():
+def listar():
     db = SessionLocal()
     try:
         claims = get_jwt()
         id_empresa = claims["id_empresa"]
-        items = listar_productos(db, id_empresa)
-        data = [producto_to_dict(p) for p in items]
+        items = listar_clientes(db, id_empresa)
+        data = [cliente_to_dict(p) for p in items]
         return jsonify({"success": True, "data": data}), 200
     finally:
         db.close()
 
-@productos_bp.route("/", methods=["POST"])
+@clientes_bp.route("/", methods=["POST"])
 @jwt_required()
-@require_roles("Owner")
+@require_roles("Owner", "Cotizador")
 def crear():
     claims = get_jwt()
     id_empresa = claims["id_empresa"]
@@ -37,18 +37,18 @@ def crear():
 
     db = SessionLocal()
     try:
-        producto = crear_producto(db, payload, id_empresa)
+        cliente = crear_cliente(db, payload, id_empresa)
 
-        if not producto:
+        if not cliente:
             return jsonify({
                 "success": False,
-                "message": "SKU ya existe para esta empresa"
+                "message": "Documento ya existe para esta empresa"
             }), 409
 
         return jsonify({
             "success": True,
             "data": {
-                "id_producto": producto.id_producto
+                "id_cliente": cliente.id_cliente
             }
         }), 201
     finally:
