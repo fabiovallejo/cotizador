@@ -32,7 +32,17 @@ def crear_cotizacion(db: Session, id_empresa: int, id_usuario: int, id_cliente: 
 
     return cotizacion
 
-def obtener_cotizacion(db, id_cotizacion, id_empresa):
+def obtener_cotizacion(db, id_cotizacion, id_empresa): 
+    return (
+        db.query(Cotizacion)
+        .filter(
+            Cotizacion.id_cotizacion == id_cotizacion,
+            Cotizacion.id_empresa == id_empresa
+        )
+        .first()
+    )
+
+def cerrar_cotizacion(db, id_cotizacion, id_empresa):
     cotizacion = (
         db.query(Cotizacion)
         .filter(
@@ -42,5 +52,25 @@ def obtener_cotizacion(db, id_cotizacion, id_empresa):
         .first()
     )
 
-    return cotizacion
+    if not cotizacion:
+        return None, "NO_EXISTE"
 
+    if cotizacion.estado != "BORRADOR":
+        return None, "YA_CERRADA"
+
+    items = (
+        db.query(CotizacionItem)
+        .filter(CotizacionItem.id_cotizacion == id_cotizacion)
+        .count()
+    )
+
+    if items == 0:
+        return None, "SIN_ITEMS"
+
+    cotizacion.estado = "CERRADA"
+    cotizacion.fecha_cierre = datetime.utcnow()
+
+    db.commit()
+    db.refresh(cotizacion)
+
+    return cotizacion, None

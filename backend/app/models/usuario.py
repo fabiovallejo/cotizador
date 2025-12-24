@@ -14,4 +14,5 @@ class Usuario(Base):
     nombres = Column(String(255), nullable=False)
     esta_activo = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
+    fecha_cierre = Column(DateTime, nullable=True)
     ultima_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  

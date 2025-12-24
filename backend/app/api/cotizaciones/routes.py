@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from app.core.permissions import require_roles
 from app.core.database import SessionLocal
-from app.services.cotizacion_service import listar_cotizaciones, crear_cotizacion, obtener_cotizacion
+from app.services.cotizacion_service import listar_cotizaciones, crear_cotizacion, obtener_cotizacion, cerrar_cotizacion
 from app.serializers.cotizacion_serializer import cotizacion_to_dict
 from app.services.cotizacion_item_service import agregar_item
 
@@ -77,7 +77,19 @@ def agregar_item_a_cotizacion(id_cotizacion):
 
     db = SessionLocal()
     try:
-        item = agregar_item(db, id_cotizacion, payload)
+        item, error = agregar_item(db, id_cotizacion, payload)
+
+        if error == "COTIZACION_CERRADA":
+            return jsonify({
+                "success": False,
+                "message": "La cotización está cerrada y no se puede modificar"
+            }), 409
+        
+        if error == "NO_EXISTE":
+            return jsonify({
+                "success": False,
+                "message": "Cotización no encontrada"
+            }), 404
 
         if not item:
             return jsonify({
@@ -117,5 +129,42 @@ def obtener(id_cotizacion):
             "success": True,
             "data": cotizacion_to_dict(cotizacion)
         }), 200
+    finally:
+        db.close()
+
+@cotizaciones_bp.route("/<int:id_cotizacion>/cerrar", methods=["PUT"])
+@jwt_required()
+@require_roles("Owner", "Cotizador")
+def cerrar(id_cotizacion):
+    db = SessionLocal()
+    try:
+        claims = get_jwt()
+        id_empresa = claims["id_empresa"]
+
+        cotizacion, error = cerrar_cotizacion(db, id_cotizacion, id_empresa)
+
+        if error == "NO_EXISTE":
+            return jsonify({
+                "success": False,
+                "message": "Cotización no encontrada"
+            }), 404
+
+        if error == "YA_CERRADA":
+            return jsonify({
+                "success": False,
+                "message": "La cotización ya está cerrada"
+            }), 409
+
+        if error == "SIN_ITEMS":
+            return jsonify({
+                "success": False,
+                "message": "No se puede cerrar una cotización sin items"
+            }), 400
+
+        return jsonify({
+            "success": True,
+            "message": "Cotización cerrada correctamente"
+        }), 200
+
     finally:
         db.close()

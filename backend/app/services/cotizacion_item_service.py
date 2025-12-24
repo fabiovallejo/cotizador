@@ -20,8 +20,27 @@ def agregar_item(db, id_cotizacion, payload):
 
     if not producto:
         return None
+    
+    item_existente = (
+    db.query(CotizacionItem)
+    .filter(
+        CotizacionItem.id_cotizacion == id_cotizacion,
+        CotizacionItem.id_producto == payload["id_producto"]
+    )
+    .first()
+    )
 
     cantidad = payload["cantidad"]
+
+    if item_existente:
+        item_existente.cantidad += cantidad
+        item_existente.subtotal = (
+            item_existente.cantidad * item_existente.precio_unitario
+        )
+        db.commit()
+        db.refresh(item_existente)
+        return item_existente, None
+
     precio = producto.precio
     subtotal = cantidad * precio
 
@@ -34,8 +53,9 @@ def agregar_item(db, id_cotizacion, payload):
         subtotal=subtotal
     )
 
+
     db.add(item)
     db.commit()
     db.refresh(item)
 
-    return item
+    return item, None
