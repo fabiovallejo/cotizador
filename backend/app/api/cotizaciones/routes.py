@@ -237,7 +237,8 @@ def eliminar_item_route(id_cotizacion, id_item):
 @jwt_required()
 def enviar(id_cotizacion):
     db = SessionLocal()
-    id_empresa = get_jwt_identity()["id_empresa"]
+    claims = get_jwt()
+    id_empresa = claims["id_empresa"]
 
     cotizacion, error = enviar_cotizacion(db, id_cotizacion, id_empresa)
 
