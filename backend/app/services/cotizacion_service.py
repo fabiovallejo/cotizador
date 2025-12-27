@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.models.cotizacion import Cotizacion
 from app.models.cotizacion_item import CotizacionItem
 from datetime import datetime
@@ -74,3 +75,21 @@ def cerrar_cotizacion(db, id_cotizacion, id_empresa):
     db.refresh(cotizacion)
 
     return cotizacion, None
+
+def recalcular_totales(db, id_cotizacion):
+    subtotal = (
+        db.query(func.coalesce(func.sum(CotizacionItem.subtotal), 0))
+        .filter(CotizacionItem.id_cotizacion == id_cotizacion)
+        .scalar()
+    )
+
+    cotizacion = (
+        db.query(Cotizacion)
+        .filter(Cotizacion.id_cotizacion == id_cotizacion)
+        .first()
+    )
+
+    if cotizacion:
+        cotizacion.subtotal = subtotal
+        cotizacion.total = subtotal
+        db.commit()
