@@ -1,10 +1,8 @@
-def producto_to_dict(producto):
+def producto_to_dict(p):
     return {
-        "id_producto": producto.id_producto,
-        "SKU": producto.SKU,
-        "nombre": producto.nombre,
-        "precio": float(producto.precio),
-        "descripcion": producto.descripcion,
-        "id_empresa": producto.id_empresa,
-        "esta_activo": producto.esta_activo
+        "id_producto": p.id_producto,
+        "nombre": p.nombre,
+        "sku": p.SKU,
+        "precio": float(p.precio)
     }
+

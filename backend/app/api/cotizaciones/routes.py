@@ -2,10 +2,9 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from app.core.permissions import require_roles
 from app.core.database import SessionLocal
-from app.services.cotizacion_service import listar_cotizaciones, crear_cotizacion, obtener_cotizacion, cerrar_cotizacion
-from app.services.cotizacion_item_service import actualizar_item, eliminar_item
-from app.serializers.cotizacion_serializer import cotizacion_to_dict
-from app.services.cotizacion_item_service import agregar_item
+from app.services.cotizacion_service import listar_cotizaciones, crear_cotizacion, obtener_cotizacion, cerrar_cotizacion, recalcular_totales, enviar_cotizacion
+from app.services.cotizacion_item_service import actualizar_item, eliminar_item, agregar_item
+from app.serializers.cotizacion_serializer import cotizacion_resumen_to_dict, cotizacion_detalle_to_dict
 
 
 cotizaciones_bp = Blueprint(
@@ -23,10 +22,13 @@ def listar():
         claims = get_jwt()
         id_empresa = claims["id_empresa"]
 
-        items = listar_cotizaciones(db, id_empresa)
-        data = [cotizacion_to_dict(c) for c in items]
+        cotizaciones = listar_cotizaciones(db, id_empresa)
+        data = [cotizacion_resumen_to_dict(c) for c in cotizaciones]
 
-        return jsonify({"success": True, "data": data}), 200
+        return jsonify({
+            "success": True,
+            "data": data
+        }), 200
     finally:
         db.close()
 
@@ -118,17 +120,19 @@ def obtener(id_cotizacion):
         claims = get_jwt()
         id_empresa = claims["id_empresa"]
 
-        cotizacion = obtener_cotizacion(db, id_cotizacion, id_empresa)
+        result = obtener_cotizacion(db, id_cotizacion, id_empresa)
 
-        if not cotizacion:
+        if not result:
             return jsonify({
                 "success": False,
                 "message": "Cotización no encontrada"
             }), 404
 
+        cotizacion, items = result
+
         return jsonify({
             "success": True,
-            "data": cotizacion_to_dict(cotizacion)
+            "data": cotizacion_detalle_to_dict(cotizacion, items)
         }), 200
     finally:
         db.close()
@@ -198,6 +202,8 @@ def actualizar_item_route(id_cotizacion, id_item):
         if error in ["NO_EXISTE", "ITEM_NO_EXISTE"]:
             return jsonify({"success": False, "message": "No encontrado"}), 404
 
+        recalcular_totales(db, id_cotizacion)
+
         return jsonify({
             "success": True,
             "message": "Item actualizado correctamente"
@@ -218,9 +224,36 @@ def eliminar_item_route(id_cotizacion, id_item):
         if error in ["NO_EXISTE", "ITEM_NO_EXISTE"]:
             return jsonify({"success": False, "message": "No encontrado"}), 404
 
+        recalcular_totales(db, id_cotizacion)
+
         return jsonify({
             "success": True,
             "message": "Item eliminado correctamente"
         }), 200
     finally:
         db.close()
+
+@cotizaciones_bp.route("/<int:id_cotizacion>/enviar", methods=["PUT"])
+@jwt_required()
+def enviar(id_cotizacion):
+    db = SessionLocal()
+    id_empresa = get_jwt_identity()["id_empresa"]
+
+    cotizacion, error = enviar_cotizacion(db, id_cotizacion, id_empresa)
+
+    if error == "NO_EXISTE":
+        return jsonify({"success": False, "message": "Cotización no existe"}), 404
+
+    if error == "YA_CERRADA":
+        return jsonify({"success": False, "message": "Cotización ya está cerrada"}), 409
+
+    if error == "YA_ENVIADA":
+        return jsonify({"success": False, "message": "Cotización ya fue enviada"}), 409
+
+    if error == "SIN_ITEMS":
+        return jsonify({"success": False, "message": "La cotización no tiene items"}), 400
+
+    return jsonify({
+        "success": True,
+        "message": "Cotización enviada correctamente"
+    })

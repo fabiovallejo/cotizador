@@ -3,7 +3,6 @@ from sqlalchemy import func
 from app.models.cotizacion import Cotizacion
 from app.models.cotizacion_item import CotizacionItem
 from datetime import datetime
-from app.serializers.cotizacion_serializer import cotizacion_to_dict
 
 def generar_codigo_cotizacion():
     return f"COT-{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -33,8 +32,8 @@ def crear_cotizacion(db: Session, id_empresa: int, id_usuario: int, id_cliente: 
 
     return cotizacion
 
-def obtener_cotizacion(db, id_cotizacion, id_empresa): 
-    return (
+def obtener_cotizacion(db: Session, id_cotizacion: int, id_empresa: int):
+    cotizacion = (
         db.query(Cotizacion)
         .filter(
             Cotizacion.id_cotizacion == id_cotizacion,
@@ -42,6 +41,17 @@ def obtener_cotizacion(db, id_cotizacion, id_empresa):
         )
         .first()
     )
+
+    if not cotizacion:
+        return None
+
+    items = (
+        db.query(CotizacionItem)
+        .filter(CotizacionItem.id_cotizacion == id_cotizacion)
+        .all()
+    )
+
+    return cotizacion, items
 
 def cerrar_cotizacion(db, id_cotizacion, id_empresa):
     cotizacion = (
@@ -56,7 +66,7 @@ def cerrar_cotizacion(db, id_cotizacion, id_empresa):
     if not cotizacion:
         return None, "NO_EXISTE"
 
-    if cotizacion.estado != "BORRADOR":
+    if cotizacion.estado == "CERRADA":
         return None, "YA_CERRADA"
 
     items = (
@@ -93,3 +103,39 @@ def recalcular_totales(db, id_cotizacion):
         cotizacion.subtotal = subtotal
         cotizacion.total = subtotal
         db.commit()
+
+def enviar_cotizacion(db, id_cotizacion, id_empresa):
+    cotizacion = (
+        db.query(Cotizacion)
+        .filter(
+            Cotizacion.id_cotizacion == id_cotizacion,
+            Cotizacion.id_empresa == id_empresa
+        )
+        .first()
+    )
+
+    if not cotizacion:
+        return None, "NO_EXISTE"
+
+    if cotizacion.estado == "CERRADA":
+        return None, "YA_CERRADA"
+
+    if cotizacion.estado == "ENVIADA":
+        return None, "YA_ENVIADA"
+
+    items = (
+        db.query(CotizacionItem)
+        .filter(CotizacionItem.id_cotizacion == id_cotizacion)
+        .count()
+    )
+
+    if items == 0:
+        return None, "SIN_ITEMS"
+
+    cotizacion.estado = "ENVIADA"
+    cotizacion.fecha_envio = datetime.utcnow()
+
+    db.commit()
+    db.refresh(cotizacion)
+
+    return cotizacion, None

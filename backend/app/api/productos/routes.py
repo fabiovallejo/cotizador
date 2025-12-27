@@ -10,14 +10,21 @@ productos_bp = Blueprint("productos", __name__, url_prefix="/api/v1/productos")
 @productos_bp.route("/", methods=["GET"])
 @jwt_required()
 @require_roles("Owner", "Cotizador")
-def get_all():
+def listar():
     db = SessionLocal()
     try:
         claims = get_jwt()
         id_empresa = claims["id_empresa"]
-        items = listar_productos(db, id_empresa)
-        data = [producto_to_dict(p) for p in items]
-        return jsonify({"success": True, "data": data}), 200
+
+        search = request.args.get("search")
+
+        productos = listar_productos(db, id_empresa, search)
+        data = [producto_to_dict(p) for p in productos]
+
+        return jsonify({
+            "success": True,
+            "data": data
+        }), 200
     finally:
         db.close()
 
