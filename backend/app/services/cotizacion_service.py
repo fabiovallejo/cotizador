@@ -139,3 +139,24 @@ def enviar_cotizacion(db, id_cotizacion, id_empresa):
     db.refresh(cotizacion)
 
     return cotizacion, None
+
+def obtener_cotizacion_completa(db, id_cotizacion, id_empresa):
+    cotizacion = (
+        db.query(Cotizacion)
+        .filter(
+            Cotizacion.id_cotizacion == id_cotizacion,
+            Cotizacion.id_empresa == id_empresa
+        )
+        .first()
+    )
+
+    if not cotizacion:
+        return None, None
+
+    items = (
+        db.query(CotizacionItem)
+        .filter(CotizacionItem.id_cotizacion == id_cotizacion)
+        .all()
+    )
+
+    return cotizacion, items

@@ -1,11 +1,11 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from app.core.permissions import require_roles
 from app.core.database import SessionLocal
-from app.services.cotizacion_service import listar_cotizaciones, crear_cotizacion, obtener_cotizacion, cerrar_cotizacion, recalcular_totales, enviar_cotizacion
+from app.services.cotizacion_service import listar_cotizaciones, crear_cotizacion, obtener_cotizacion, cerrar_cotizacion, recalcular_totales, enviar_cotizacion, obtener_cotizacion_completa
 from app.services.cotizacion_item_service import actualizar_item, eliminar_item, agregar_item
 from app.serializers.cotizacion_serializer import cotizacion_resumen_to_dict, cotizacion_detalle_to_dict
-
+from app.services.cotizacion_pdf_service import generar_pdf_cotizacion
 
 cotizaciones_bp = Blueprint(
     "cotizaciones",
@@ -258,3 +258,38 @@ def enviar(id_cotizacion):
         "success": True,
         "message": "Cotización enviada correctamente"
     })
+
+@cotizaciones_bp.route("/<int:id_cotizacion>/pdf", methods=["GET"])
+@jwt_required()
+@require_roles("Owner", "Cotizador")
+def descargar_pdf(id_cotizacion):
+    db = SessionLocal()
+    try:
+        claims = get_jwt()
+        id_empresa = claims["id_empresa"]
+
+        cotizacion, error = obtener_cotizacion_completa(db, id_cotizacion, id_empresa)
+
+        if error == "NO_EXISTE":
+            return jsonify({
+                "success": False,
+                "message": "Cotización no encontrada"
+            }), 404
+
+        if not cotizacion:
+            return jsonify({
+                "success": False,
+                "message": "Cotización no encontrada"
+            }), 404
+
+        pdf_buffer = generar_pdf_cotizacion(cotizacion)
+
+        return send_file(
+            pdf_buffer,
+            mimetype="application/pdf",
+            as_attachment=True,
+            download_name=f"{cotizacion.codigo_cotizacion}.pdf"
+        )
+
+    finally:
+        db.close()
