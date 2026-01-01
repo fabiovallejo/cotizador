@@ -11,7 +11,7 @@ def create_app():
     app.config["JWT_SECRET_KEY"] = settings.JWT_SECRET
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = settings.JWT_EXPIRATION
 
-    CORS(app, origins=settings.CORS_ORIGINS)
+    CORS(app, origins=settings.CORS_ORIGINS, supports_credentials=True)
     jwt.init_app(app)
     app.register_blueprint(auth_bp)
     app.register_blueprint(productos_bp)
