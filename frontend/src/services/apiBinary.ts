@@ -1,20 +1,17 @@
-import { logout } from '../lib/auth'
+import { logout } from "../lib/auth";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api/v1";
 
-export async function apiFetch(endpoint: string, options?: RequestInit) {
+export async function apiFetchBlob(endpoint: string) {
   const token = localStorage.getItem("token");
 
   const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
+    method: "GET",
     headers: {
-      "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     }
   });
-
-  const data = await res.json();
 
   if (res.status === 401) {
     logout();
@@ -26,8 +23,8 @@ export async function apiFetch(endpoint: string, options?: RequestInit) {
   }
 
   if (!res.ok) {
-    throw new Error(data.message || "ERROR EN LA API");
+    throw new Error("Error al descargar archivo");
   }
 
-  return data;
+  return res.blob();
 }
