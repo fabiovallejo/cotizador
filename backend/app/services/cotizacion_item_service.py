@@ -62,6 +62,8 @@ def agregar_item(db, id_cotizacion, payload):
     db.commit()
     db.refresh(item)
 
+    recalcular_totales(db, id_cotizacion)
+
     return item, None
 
 def actualizar_item(db, id_cotizacion, id_item, nueva_cantidad):

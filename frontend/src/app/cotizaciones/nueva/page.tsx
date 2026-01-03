@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {crearCotizacion, agregarItemCotizacion} from "../../../services/cotizacionesService";
+import { buscarProductos } from "../../../services/productosService";
 import { useRouter } from "next/navigation";
 
 type ItemDraft = {
@@ -17,28 +18,28 @@ export default function NuevaCotizacionPage() {
   const [idCliente, setIdCliente] = useState<number | null>(null);
   const [items, setItems] = useState<ItemDraft[]>([]);
 
-  const [idProducto, setIdProducto] = useState<number | null>(null);
   const [cantidad, setCantidad] = useState<number>(1);
+  const [query, setQuery] = useState("");
+  const [resultados, setResultados] = useState<any[]>([]);
+  const [loadingProductos, setLoadingProductos] = useState(false);
 
-  function agregarAlCarrito() {
-    if (!idProducto || cantidad <= 0) {
+  function agregarAlCarrito(
+    producto: { id: number; nombre: string; precio: number },
+    cantidadAgregar: number
+  ) {
+    if (!producto?.id || cantidadAgregar <= 0) {
       alert("Producto y cantidad inválidos");
       return;
     }
 
-    const producto = {
-      id: idProducto,
-      nombre: `Producto ${idProducto}`,
-      precio: 0
-    };
-
     setItems(prev => {
       const idx = prev.findIndex(x => x.idProducto === producto.id);
+
       if (idx !== -1) {
         const copy = [...prev];
         copy[idx] = {
           ...copy[idx],
-          cantidad: copy[idx].cantidad + cantidad
+          cantidad: copy[idx].cantidad + cantidadAgregar
         };
         return copy;
       }
@@ -49,7 +50,7 @@ export default function NuevaCotizacionPage() {
           idProducto: producto.id,
           nombre: producto.nombre,
           precio: producto.precio,
-          cantidad
+          cantidad: cantidadAgregar
         }
       ];
     });
@@ -81,6 +82,10 @@ export default function NuevaCotizacionPage() {
     }
   }
 
+  function eliminarItem(idProducto: number) {
+    setItems(prev => prev.filter(it => it.idProducto !== idProducto));
+  }
+
   return (
     <div>
       <h1>Nueva Cotización</h1>
@@ -99,27 +104,82 @@ export default function NuevaCotizacionPage() {
       <h3>Agregar ítem</h3>
 
       <input
-        type="number"
-        placeholder="ID Producto"
-        value={idProducto ?? ""}
-        onChange={e => setIdProducto(Number(e.target.value))}
+        placeholder="Buscar producto"
+        value={query}
+        onChange={e => setQuery(e.target.value)}
       />
 
-      <input
-        type="number"
-        min={1}
-        value={cantidad}
-        onChange={e => setCantidad(Number(e.target.value))}
-      />
+      <button
+        onClick={async () => {
+          if (query.trim().length < 2) {
+            alert("Escribe al menos 2 caracteres");
+            return;
+          }
 
-      <button onClick={agregarAlCarrito}>
-        Agregar ítem
+          setLoadingProductos(true);
+          try {
+            const res = await buscarProductos(query);
+            setResultados(res.data);
+          } catch (err: any) {
+            console.error("Error buscar productos:", err);
+            alert(err.message || "Error buscando productos");
+          } finally {
+            setLoadingProductos(false);
+          }
+        }}
+      >
+        Buscar
       </button>
 
       <ul>
-        {items.map((it, idx) => (
-          <li key={idx}>
-            {it.nombre} – Cantidad: {it.cantidad}
+        {resultados.map(p => (
+          <li key={p.id_producto}>
+            {p.nombre} – S/. {p.precio}
+            <button
+              onClick={() => {
+                agregarAlCarrito(
+                  { id: p.id_producto, nombre: p.nombre, precio: p.precio },
+                  cantidad
+                );
+                setResultados([]);
+                setQuery("");
+              }}
+            >
+              Agregar
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <ul>
+        {items.map(it => (
+          <li key={it.idProducto}>
+            {it.nombre}
+
+            <input
+              type="number"
+              min={1}
+              value={it.cantidad}
+              onChange={e => {
+                const nuevaCantidad = Number(e.target.value);
+                if (nuevaCantidad <= 0) return;
+                setItems(prev =>
+                  prev.map(item =>
+                    item.idProducto === it.idProducto
+                      ? { ...item, cantidad: nuevaCantidad }
+                      : item
+                  )
+                );
+              }}
+              style={{ width: "60px", marginLeft: "10px" }}
+            />
+
+            <button
+              onClick={() => eliminarItem(it.idProducto)}
+              style={{ marginLeft: "10px", color: "red" }}
+            >
+              Eliminar
+            </button>
           </li>
         ))}
       </ul>

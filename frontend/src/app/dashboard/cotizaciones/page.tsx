@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listarCotizaciones, descargarPdfCotizacion, cerrarCotizacion } from "../../../services/cotizacionesService";
+import { listarCotizaciones, descargarPdfCotizacion, cerrarCotizacion, eliminarCotizacion } from "../../../services/cotizacionesService";
 import { Cotizacion } from "../../../types/cotizacion";
 import { useRouter } from "next/navigation";
 
@@ -67,18 +67,35 @@ export default function CotizacionesPage() {
                   alert("Error al descargar el PDF");
                 }
               }}>Descargar PDF</button>
+              
               {c.estado === "BORRADOR" && (
               <button className="hover:cursor-pointer ml-7 my-4 p-3 bg-white rounded-[5px] text-black"
               onClick={async () => {
                 if (!confirm("¿Cerrar esta cotización?")) return;
 
                 await cerrarCotizacion(c.id_cotizacion);
-                router.refresh();}}>Cerrar Cotizacion</button>
+                router.refresh();}}>Cerrar Cotizacion
+              </button>)}
+
+              {c.estado === "BORRADOR" && (
+              <button className="bg-red-500 text-white ml-5 hover:cursor-pointer p-3 rounded-[4px]"
+                onClick={async () => {
+                  if (!confirm("¿Eliminar esta cotización?")) return;
+
+                  try {
+                    await eliminarCotizacion(c.id_cotizacion);
+                    setCotizaciones(prev =>
+                      prev.filter(x => x.id_cotizacion !== c.id_cotizacion)
+                    );
+                  } catch (e: any) {
+                    alert(e.message || "Error eliminando cotización");
+                  }
+                }}>X
+              </button>
               )}
-            </li>
-          ))}
+          </li>  
+        ))}
         </ul>
       )}
     </div>
-  );
-}
+  )}

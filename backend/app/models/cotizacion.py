@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint, Numeric
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, UniqueConstraint, Numeric, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.core.database import Base
@@ -25,5 +25,6 @@ class Cotizacion(Base):
     total = Column(Numeric(12, 2), nullable=False)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     ultima_actualizacion = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    eliminado = Column(Boolean, default=False, nullable=False)
 
     items = relationship("CotizacionItem", back_populates="cotizacion")

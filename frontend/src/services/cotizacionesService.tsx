@@ -47,3 +47,9 @@ export async function agregarItemCotizacion(
     }),
   });
 }
+
+export async function eliminarCotizacion(id: number) {
+  return apiFetch(`/cotizaciones/${id}`, {
+    method: "DELETE",
+  });
+}

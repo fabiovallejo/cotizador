@@ -10,7 +10,10 @@ def generar_codigo_cotizacion():
 def listar_cotizaciones(db: Session, id_empresa: int):
     return (
         db.query(Cotizacion)
-        .filter(Cotizacion.id_empresa == id_empresa)
+        .filter(
+            Cotizacion.id_empresa == id_empresa,
+            Cotizacion.eliminado == False
+        )
         .order_by(Cotizacion.fecha_creacion.desc())
         .all()
     )
@@ -160,3 +163,25 @@ def obtener_cotizacion_completa(db, id_cotizacion, id_empresa):
     )
 
     return cotizacion, items
+
+def eliminar_cotizacion(db, id_cotizacion, id_empresa):
+    cotizacion = (
+        db.query(Cotizacion)
+        .filter(
+            Cotizacion.id_cotizacion == id_cotizacion,
+            Cotizacion.id_empresa == id_empresa,
+            Cotizacion.eliminado == False
+        )
+        .first()
+    )
+
+    if not cotizacion:
+        return None, "NO_EXISTE"
+
+    if cotizacion.estado != "BORRADOR":
+        return None, "NO_BORRADOR"
+
+    cotizacion.eliminado = True
+    db.commit()
+
+    return cotizacion, None
