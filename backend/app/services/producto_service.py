@@ -3,7 +3,7 @@ from sqlalchemy import select
 from fastapi import HTTPException, status
 from app.models.tenant import Producto
 from app.schemas.productos import ProductoRequest
-
+from typing import Optional
 
 async def crear_producto(db: AsyncSession, data: ProductoRequest) -> Producto:
     """Crea un nuevo producto en la base de datos."""
@@ -44,3 +44,27 @@ async def crear_producto(db: AsyncSession, data: ProductoRequest) -> Producto:
     await db.refresh(nuevo_producto)
     
     return nuevo_producto
+
+
+async def listar_productos(
+    db: AsyncSession,
+    skip: int = 0,
+    limit: int = 50,
+    estado: Optional[str] = None,
+    busqueda: Optional[str] = None
+) -> list[Producto]:
+    """Lista productos con filtros opcionales."""
+    query = select(Producto).where(Producto.deleted_at == None)
+
+    if estado:
+        query = query.where(Producto.estado == estado)
+
+    if busqueda:
+        query = query.where(
+            (Producto.nombre.ilike(f"%{busqueda}%")) |
+            (Producto.codigo.ilike(f"%{busqueda}%")) 
+        )
+    query = query.offset(skip).limit(limit).order_by(Producto.nombre)
+
+    result = await db.execute(query)
+    return result.scalars().all()

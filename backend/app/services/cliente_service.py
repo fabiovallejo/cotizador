@@ -3,6 +3,7 @@ from sqlalchemy import select
 from fastapi import HTTPException, status
 from app.models.tenant import Cliente
 from app.schemas.clientes import ClienteRequest
+from typing import Optional
 
 
 async def crear_cliente(db: AsyncSession, data: ClienteRequest) -> Cliente:
@@ -36,3 +37,31 @@ async def crear_cliente(db: AsyncSession, data: ClienteRequest) -> Cliente:
     await db.refresh(nuevo_cliente)
     
     return nuevo_cliente
+
+
+async def listar_clientes(
+    db: AsyncSession,
+    skip: int = 0,
+    limit: int = 50,
+    estado: Optional[str] = None,
+    busqueda: Optional[str] = None
+) -> list[Cliente]:
+    """Lista clientes con paginación y filtros opcionales."""
+    
+    query = select(Cliente).where(Cliente.deleted_at == None)
+    
+    if estado:
+        query = query.where(Cliente.estado == estado)
+    
+    if busqueda:
+        query = query.where(
+            (Cliente.razon_social.ilike(f"%{busqueda}%")) |
+            (Cliente.numero_documento.ilike(f"%{busqueda}%")) |
+            (Cliente.nombre_comercial.ilike(f"%{busqueda}%"))
+        )
+    
+    query = query.offset(skip).limit(limit).order_by(Cliente.razon_social)
+    
+    result = await db.execute(query)
+    return result.scalars().all()
+

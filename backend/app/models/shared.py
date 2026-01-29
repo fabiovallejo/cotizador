@@ -67,7 +67,7 @@ class Empresa(Base, AuditMixin, SoftDeleteMixin):
     # ===== DATOS FISCALES =====
     moneda_base = Column(String(3), default="PEN")
     aplicar_igv_defecto = Column(Boolean, default=True)
-    igv_porcentaje = Column(Integer, default=1800) 
+    igv_porcentaje = Column(Numeric(10, 2), default=18.00)
     
     # ===== DOMICILIO FISCAL =====
     direccion_fiscal = Column(String(500)) 

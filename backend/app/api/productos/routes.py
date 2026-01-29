@@ -1,8 +1,9 @@
 from app.core.dependencies import CurrentUser, get_current_user, get_tenant_db
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.productos import ProductoRequest, ProductoResponse
-from app.services.producto_service import crear_producto
+from app.services.producto_service import crear_producto, listar_productos
 
 router = APIRouter(prefix="/api/productos", tags=["Productos"])
 
@@ -49,3 +50,20 @@ async def crear(
     """
     producto = await crear_producto(db, data)
     return producto
+
+
+@router.get(
+    "/listar",
+    response_model=list[ProductoResponse],
+    summary="Listar productos"
+)
+async def listar(
+    skip: int = Query(0, ge=0, description="Registros a saltar"),
+    limit: int = Query(50, ge=1, le=100, description="Máximo de registros"),
+    estado: Optional[str] = Query(None, description="Filtrar por estado: activo | inactivo"),
+    busqueda: Optional[str] = Query(None, description="Buscar por razón social, RUC o nombre comercial"),
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    productos = await listar_productos(db, skip, limit, estado, busqueda)
+    return productos

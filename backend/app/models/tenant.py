@@ -56,7 +56,7 @@ class Producto(Base, AuditMixin):
     
     # ===== IMPUESTOS =====
     aplica_igv = Column(Boolean, default=True)
-    igv_porcentaje = Column(Integer, default=1800) 
+    igv_porcentaje = Column(Numeric(5, 2), default=18.00)
     
     # ===== TIPO DE AFECTACIÓN IGV (SUNAT) =====
     # 10: Gravado - Operación Onerosa (18%)
@@ -228,7 +228,7 @@ class ItemCotizacion(Base):
     precio_unitario = Column(Numeric(12, 4), nullable=False)
     
     # ===== IMPUESTO =====
-    igv_porcentaje = Column(Integer, default=1800)  # 18.00%
+    igv_porcentaje = Column(Numeric(5, 2), default=18.00)
     igv_monto = Column(Numeric(12, 4))
     
     # ===== TOTALES =====
@@ -388,7 +388,7 @@ class ItemFactura(Base):
     tipo_afectacion_igv = Column(String(2), default="10")
     
     # ===== IMPUESTO =====
-    igv_porcentaje = Column(Integer, default=1800)
+    igv_porcentaje = Column(Numeric(5, 2), default=18.00)
     igv_monto = Column(Numeric(12, 4))
     
     # ===== CÓDIGO PRODUCTO SUNAT (OPCIONAL PERO RECOMENDADO) =====
