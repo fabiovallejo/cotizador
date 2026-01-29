@@ -9,3 +9,9 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+
+class UserResponse(BaseModel):
+    usuario_id: int
+    empresa_id: int
+    rol: str
+    db_schema: str
