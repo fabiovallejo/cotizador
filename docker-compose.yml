@@ -1,0 +1,142 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: facturacion_db
+    environment:
+      POSTGRES_USER: ${DB_USER:-facturacion}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-SecurePassword123!}
+      POSTGRES_DB: ${DB_NAME:-facturacion_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-facturacion}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - facturacion-network
+
+  # Redis Cache & Broker
+  redis:
+    image: redis:7-alpine
+    container_name: facturacion_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - facturacion-network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: facturacion_backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-facturacion}:${DB_PASSWORD:-SecurePassword123!}@db:5432/${DB_NAME:-facturacion_db}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-this}
+      AMBIENTE_SUNAT: ${AMBIENTE_SUNAT:-beta}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - facturacion-network
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: facturacion_celery_worker
+    command: celery -A app.tasks worker --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-facturacion}:${DB_PASSWORD:-SecurePassword123!}@db:5432/${DB_NAME:-facturacion_db}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    networks:
+      - facturacion-network
+
+  # Celery Beat (Scheduler)
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: facturacion_celery_beat
+    command: celery -A app.tasks beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-facturacion}:${DB_PASSWORD:-SecurePassword123!}@db:5432/${DB_NAME:-facturacion_db}
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    networks:
+      - facturacion-network
+
+  # Flower (Celery Monitoring)
+  flower:
+    image: mher/flower:2.0
+    container_name: facturacion_flower
+    command: celery -A app.tasks flower --port=5555
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    networks:
+      - facturacion-network
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: facturacion_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8000/api
+    volumes:
+      - ./frontend:/app
+      - /app/.next
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - facturacion-network
+
+volumes:
+  postgres_data:
+
+
+networks:
+  facturacion-network:
+    driver: bridge
