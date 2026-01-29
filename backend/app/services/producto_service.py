@@ -68,3 +68,42 @@ async def listar_productos(
 
     result = await db.execute(query)
     return result.scalars().all()
+
+
+async def actualizar_producto(
+    db: AsyncSession,
+    id: int,
+    data: ProductoRequest
+) -> Producto:
+    """Actualiza un producto existente"""
+    producto = await db.get(Producto, id)
+    if not producto:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado"
+        )
+    
+    # Actualizar campos
+    producto.codigo = data.codigo
+    producto.nombre = data.nombre
+    producto.descripcion = data.descripcion
+    producto.codigo_unspsc = data.codigo_unspsc
+    producto.tipo = data.tipo
+    producto.categoria = data.categoria
+    producto.marca = data.marca
+    producto.precio_unitario = data.precio_unitario
+    producto.costo_unitario = data.costo_unitario
+    producto.precio_distribuidor = data.precio_distribuidor
+    producto.aplica_igv = data.aplica_igv
+    producto.igv_porcentaje = data.igv_porcentaje
+    producto.tipo_afectacion_igv = data.tipo_afectacion_igv
+    producto.moneda = data.moneda
+    producto.unidad_medida = data.unidad_medida
+    producto.tiene_stock = data.tiene_stock
+    producto.cantidad_stock = data.cantidad_stock
+    producto.estado = data.estado
+
+    await db.commit()
+    await db.refresh(producto)
+
+    return producto

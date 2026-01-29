@@ -65,3 +65,32 @@ async def listar_clientes(
     result = await db.execute(query)
     return result.scalars().all()
 
+
+async def actualizar_cliente(
+    db: AsyncSession,
+    id: int,
+    data: ClienteRequest
+) -> Cliente:
+    """Actualiza un cliente existente"""
+    cliente = await db.get(Cliente, id)
+    if not cliente:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cliente no encontrado"
+        )
+    
+    cliente.tipo_documento = data.tipo_documento
+    cliente.numero_documento = data.numero_documento
+    cliente.razon_social = data.razon_social
+    cliente.nombre_comercial = data.nombre_comercial
+    cliente.email = data.email
+    cliente.telefono = data.telefono
+    cliente.direccion_completa = data.direccion_completa
+    cliente.ubigeo = data.ubigeo
+    cliente.es_cliente_frecuente = data.es_cliente_frecuente
+    cliente.estado = data.estado
+
+    await db.commit()
+    await db.refresh(cliente)
+
+    return cliente

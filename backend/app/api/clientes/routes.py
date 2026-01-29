@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.core.dependencies import get_tenant_db, CurrentUser, get_current_user
 from app.schemas.clientes import ClienteResponse, ClienteRequest
-from app.services.cliente_service import crear_cliente, listar_clientes
+from app.services.cliente_service import crear_cliente, listar_clientes, actualizar_cliente
 
 
 router = APIRouter(prefix="/api/clientes", tags=["Clientes"])
@@ -64,3 +64,19 @@ async def listar(
     """Lista todos los clientes con paginación y filtros opcionales."""
     clientes = await listar_clientes(db, skip, limit, estado, busqueda)
     return clientes
+
+
+@router.put(
+    "/actualizar/{id}",
+    response_model=ClienteResponse,
+    summary="Actualizar cliente"
+)
+async def actualizar(
+    id: int,
+    data: ClienteRequest,
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Actualiza cliente existente"""
+    cliente = await actualizar_cliente(db, id, data)
+    return cliente

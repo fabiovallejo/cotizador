@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.productos import ProductoRequest, ProductoResponse
-from app.services.producto_service import crear_producto, listar_productos
+from app.services.producto_service import crear_producto, listar_productos, actualizar_producto
 
 router = APIRouter(prefix="/api/productos", tags=["Productos"])
 
@@ -67,3 +67,20 @@ async def listar(
 ):
     productos = await listar_productos(db, skip, limit, estado, busqueda)
     return productos
+
+
+@router.put(
+    "/actualizar/{id}",
+    response_model=ProductoResponse,
+    summary="Actualizar producto"
+)
+async def actualizar(
+    id: int,
+    data: ProductoRequest,
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Actualiza un producto existente por su ID."""
+    producto = await actualizar_producto(db, id, data)
+    return producto
+
