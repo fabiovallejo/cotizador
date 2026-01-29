@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     ambiente_sunat: str = "beta"
     ruta_certificado: Optional[str] = None
 
+    #ADMIN SECRET
+    admin_secret_key: str = "dev-admin-secret-key-change-in-production"
+
     class Config:
         env_file = ".env"
         case_sensitive = False

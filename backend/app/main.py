@@ -4,12 +4,9 @@ from contextlib import asynccontextmanager
 import logging 
 
 from app.core.config import settings 
-from app.db.tenant_manager import TenantManager
 
 logging.basicConfig(level = logging.INFO)
 logger = logging.getLogger(__name__)
-
-tenant_manager = TenantManager(settings.database_url)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,6 +36,10 @@ async def health_check():
     return {"status": "ok", "environment": settings.environment}
 
 #Rutas
-from app.routes import auth, clientes, productos 
+from app.api.auth.routes import router as auth_router
+from app.api.admin.routes import router as admin_router
+
+app.include_router(auth_router)
+app.include_router(admin_router)
 
 logger.info(f" Aplicación configurada en modo {settings.environment}")

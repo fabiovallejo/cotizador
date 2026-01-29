@@ -197,7 +197,7 @@ class Cotizacion(Base, AuditMixin, SoftDeleteMixin):
     # ===== RELACIONES =====
     cliente = relationship("Cliente", back_populates="cotizaciones")
     items = relationship("ItemCotizacion", back_populates="cotizacion", cascade="all, delete-orphan")
-    factura = relationship("Factura", back_populates="cotizacion")
+    factura_generada = relationship("Factura", foreign_keys=[convertida_a_factura_id], uselist=False)
     
     def __repr__(self):
         return f"<Cotizacion(numero={self.numero_cotizacion}, cliente_id={self.cliente_id})>"
@@ -349,7 +349,7 @@ class Factura(Base, AuditMixin, SoftDeleteMixin):
     # ===== RELACIONES =====
     cliente = relationship("Cliente", back_populates="facturas")
     items = relationship("ItemFactura", back_populates="factura", cascade="all, delete-orphan")
-    cotizacion = relationship("Cotizacion", back_populates="factura")
+    cotizacion = relationship("Cotizacion", foreign_keys=[cotizacion_id], uselist=False)
     
     def __repr__(self):
         return f"<Factura(numero={self.numero_serie}-{self.numero_comprobante}, cliente_id={self.cliente_id})>"

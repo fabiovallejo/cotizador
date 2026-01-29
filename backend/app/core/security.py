@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import HTTPException, status
+from fastapi import Header, HTTPException, status
 
 from app.core.config import settings
 
@@ -24,7 +24,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expires_int)
     
     to_encode.update({"exp": expire})
     
@@ -70,3 +70,12 @@ def extract_user_from_token(token: str) -> dict:
         "empresa_id": int(empresa_id),
         "rol": rol
     }
+
+async def verify_admin_secret(x_admin_secret: str = Header(...)) -> str:
+    """Valida que el header x-admin-secret sea correcto."""
+    if x_admin_secret != settings.admin_secret_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin secret inválido"
+        )
+    return x_admin_secret
