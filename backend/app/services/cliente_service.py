@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from app.models.tenant import Cliente
 from app.schemas.clientes import ClienteRequest
 from typing import Optional
+from datetime import datetime
 
 
 async def crear_cliente(db: AsyncSession, data: ClienteRequest) -> Cliente:
@@ -90,6 +91,22 @@ async def actualizar_cliente(
     cliente.es_cliente_frecuente = data.es_cliente_frecuente
     cliente.estado = data.estado
 
+    await db.commit()
+    await db.refresh(cliente)
+
+    return cliente
+
+
+async def eliminar_cliente(db: AsyncSession, id: int) -> Cliente:
+    """Elimina un cliente existente"""
+    cliente = await db.get(Cliente, id)
+    if not cliente:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cliente no encontrado"
+        )
+    
+    cliente.deleted_at = datetime.now()
     await db.commit()
     await db.refresh(cliente)
 

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.productos import ProductoRequest, ProductoResponse
-from app.services.producto_service import crear_producto, listar_productos, actualizar_producto
+from app.services.producto_service import crear_producto, listar_productos, actualizar_producto, eliminar_producto
 
 router = APIRouter(prefix="/api/productos", tags=["Productos"])
 
@@ -82,5 +82,20 @@ async def actualizar(
 ):
     """Actualiza un producto existente por su ID."""
     producto = await actualizar_producto(db, id, data)
+    return producto
+
+
+@router.delete(
+    "/eliminar/{id}",
+    response_model=ProductoResponse,
+    summary="Eliminar producto"
+)
+async def eliminar(
+    id: int,
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Elimina un producto existente (soft delete)"""
+    producto = await eliminar_producto(db, id)
     return producto
 

@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.core.dependencies import get_tenant_db, CurrentUser, get_current_user
 from app.schemas.clientes import ClienteResponse, ClienteRequest
-from app.services.cliente_service import crear_cliente, listar_clientes, actualizar_cliente
+from app.services.cliente_service import crear_cliente, listar_clientes, actualizar_cliente, eliminar_cliente
 
 
 router = APIRouter(prefix="/api/clientes", tags=["Clientes"])
@@ -79,4 +79,18 @@ async def actualizar(
 ):
     """Actualiza cliente existente"""
     cliente = await actualizar_cliente(db, id, data)
+    return cliente
+
+
+@router.delete(
+    "/eliminar/{id}",
+    summary="Eliminar cliente"
+)
+async def eliminar(
+    id: int,
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Elimina cliente existente"""
+    cliente = await eliminar_cliente(db, id)
     return cliente

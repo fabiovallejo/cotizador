@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from app.models.tenant import Producto
 from app.schemas.productos import ProductoRequest
 from typing import Optional
+from datetime import datetime
 
 async def crear_producto(db: AsyncSession, data: ProductoRequest) -> Producto:
     """Crea un nuevo producto en la base de datos."""
@@ -103,6 +104,22 @@ async def actualizar_producto(
     producto.cantidad_stock = data.cantidad_stock
     producto.estado = data.estado
 
+    await db.commit()
+    await db.refresh(producto)
+
+    return producto
+
+
+async def eliminar_producto(db: AsyncSession, id: int) -> Producto:
+    """Elimina un producto existente (soft delete)"""
+    producto = await db.get(Producto, id)
+    if not producto:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Producto no encontrado"
+        )
+    
+    producto.deleted_at = datetime.now()
     await db.commit()
     await db.refresh(producto)
 
