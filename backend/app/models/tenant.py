@@ -292,12 +292,17 @@ class Factura(Base, AuditMixin, SoftDeleteMixin):
     
     # ===== MONEDA =====
     moneda = Column(String(3), default="PEN")
+    tipo_cambio = Column(Numeric(10, 6))
     
     # ===== DATOS FISCALES =====
     subtotal = Column(Numeric(12, 4), nullable=False)
     descuento_total = Column(Numeric(12, 4), default=0)
     igv_total = Column(Numeric(12, 4), nullable=False)
     total = Column(Numeric(12, 4), nullable=False)
+
+    # ===== CONVERSION =====
+    subtotal_en_pen = Column(Numeric(12, 4), nullable=True)
+    total_en_pen = Column(Numeric(12, 4), nullable=True)
     
     # ===== FECHAS Y HORAS (SUNAT REQUIERE HORA) =====
     fecha_emision = Column(Date, nullable=False)
