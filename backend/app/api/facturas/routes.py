@@ -1,10 +1,8 @@
-# app/api/facturas/routes.py
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from typing import Optional
 from app.core.dependencies import get_current_user, get_tenant_db, CurrentUser
-from app.services.factura_service import crear_factura
+from app.services.factura_service import crear_factura, listar_facturas
 from app.schemas.factura import CreateFacturaRequest, FacturaResponse
 
 router = APIRouter(prefix="/api/facturas", tags=["Facturas"])
@@ -47,3 +45,41 @@ async def crear_factura_endpoint(
     )
     
     return factura
+
+
+@router.get(
+    "/listar",
+    response_model=list[FacturaResponse],
+    summary="Listar facturas",
+    description="Lista todas las facturas con paginación y filtros opcionales."
+)
+async def listar(
+    skip: int = Query(0, ge=0, description="Registros a saltar"),
+    limit: int = Query(50, ge=1, le=100, description="Máximo de registros"),
+    tipo: Optional[str] = Query(None, description="Tipo de comprobante: FACTURA | BOLETA | NOTA_CREDITO | NOTA_DEBITO"),
+    estado: Optional[str] = Query(None, description="Filtrar por estado: borrador | pendiente_firma | firmada | pendiente_sunat | aceptada | rechazada"),
+    busqueda: Optional[str] = Query(None, description="Buscar por numero de comprobante, razon social del cliente, numero de serie, numero de documento del cliente"),
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Lista todas las facturas con paginación y filtros opcionales.
+    
+    Parámetros:
+    - skip: Registros a saltar
+    - limit: Máximo de registros
+    - tipo: Tipo de comprobante: FACTURA | BOLETA | NOTA_CREDITO | NOTA_DEBITO
+    - estado: Filtrar por estado
+    - busqueda: Buscar por numero de comprobante, razon social del cliente, numero de serie, numero de documento del cliente
+    """
+    
+    facturas = await listar_facturas(
+        db=db,
+        skip=skip,
+        limit=limit,
+        tipo=tipo,
+        estado=estado,
+        busqueda=busqueda
+    )
+    
+    return facturas

@@ -3,8 +3,9 @@
 from decimal import Decimal
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from fastapi import HTTPException, status
+from typing import Optional
 
 from app.models.tenant import Factura, ItemFactura, Cliente, Producto
 from app.services.tipo_cambio_service import tipo_cambio_service
@@ -219,3 +220,40 @@ async def crear_factura(
     await db.refresh(nueva_factura)
     
     return nueva_factura
+
+
+async def listar_facturas(
+    db: AsyncSession,
+    skip: int = 0,
+    limit: int = 50,
+    tipo: Optional[str] = None,
+    estado: Optional[str] = None, 
+    busqueda: Optional[str] = None,
+) -> list[Factura]:
+    query = select(Factura).where(Factura.deleted_at == None)
+    
+    if tipo:
+        query = query.where(Factura.tipo_comprobante == tipo)
+    
+    if estado:
+        query = query.where(Factura.estado == estado)
+    
+    if busqueda:
+        query = query.where(
+            or_(
+                Factura.numero_comprobante.ilike(f"%{busqueda}%"),
+                Factura.cliente.has(
+                    Cliente.razon_social.ilike(f"%{busqueda}%")
+                ),
+                Factura.cliente.has(
+                    Cliente.numero_documento.ilike(f"%{busqueda}%")
+                ),
+            )
+        )
+    
+    query = query.offset(skip).limit(limit)
+    
+    result = await db.execute(query)
+    facturas = result.scalars().all()
+    
+    return facturas
