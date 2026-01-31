@@ -276,3 +276,17 @@ async def obtener_items_factura(db: AsyncSession, factura_id: int) -> list[ItemF
     items = result.scalars().all()
     
     return items
+
+
+async def eliminar_factura(db: AsyncSession, factura_id: int):
+    query = select(Factura).where(Factura.id == factura_id, Factura.deleted_at == None)
+    result = await db.execute(query)
+    factura = result.scalar_one_or_none()
+    
+    if not factura:
+        raise HTTPException(status_code=404, detail="Factura no encontrada")
+    
+    factura.deleted_at = datetime.now()
+    await db.commit()
+    
+    return factura

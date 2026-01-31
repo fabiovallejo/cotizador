@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from app.core.dependencies import get_current_user, get_tenant_db, CurrentUser
-from app.services.factura_service import crear_factura, listar_facturas, obtener_factura, obtener_items_factura
+from app.services.factura_service import crear_factura, listar_facturas, obtener_factura, obtener_items_factura, eliminar_factura
 from app.schemas.factura import CreateFacturaRequest, FacturaResponse, ItemFacturaResponse
 
 router = APIRouter(prefix="/api/facturas", tags=["Facturas"])
@@ -111,7 +111,7 @@ async def obtener(
 @router.get(
     "/{id}/items",
     summary="Obtener items de una factura",
-    description="Obtiene los items de una factura específicar por su ID",
+    description="Obtiene los items de una factura específica por su ID",
     response_model=list[ItemFacturaResponse]
 )
 async def obtener_items(
@@ -129,3 +129,24 @@ async def obtener_items(
     items = await obtener_items_factura(db, id)
     
     return items
+
+@router.delete(
+    "/{id}",
+    summary="Eliminar una factura",
+    description="Elimina una factura específica por su ID",
+)
+async def eliminar(
+    id: int,
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Elimina una factura específica por su ID.
+    
+    Parámetros:
+    - id: ID de la factura
+    """
+    
+    await eliminar_factura(db, id)
+    
+    return {"message": "Factura eliminada correctamente"}
