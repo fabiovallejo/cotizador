@@ -55,3 +55,10 @@ class ItemCotizacionResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class ConvertirAFacturaResponse(BaseModel):
+    cotizacion_id: int
+    factura_id: int
+    numero_factura: str
+    mensaje: str

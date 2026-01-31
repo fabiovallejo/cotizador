@@ -457,14 +457,15 @@ async def convertir_a_factura(
     db: AsyncSession, 
     cotizacion_id: int,
     usuario_id: int
-) -> Factura:
+) -> dict:
     """
-    Convierte una cotización aceptada a factura.
-    Solo permite conversión si estado = 'aceptada'.
+    Convierte una cotización a factura.
+    Solo permite conversión si estado = 'aceptada' o 'borrador'.
+    Valida que cliente y productos no estén en soft delete.
     """
     from sqlalchemy import Integer
     
-    # 1. Obtener cotización
+    # 1. Obtener cotización (no eliminada)
     query = select(Cotizacion).where(
         Cotizacion.id == cotizacion_id, 
         Cotizacion.deleted_at == None
@@ -473,13 +474,14 @@ async def convertir_a_factura(
     cotizacion = result.scalar_one_or_none()
     
     if not cotizacion:
-        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+        raise HTTPException(status_code=404, detail="Cotización no encontrada o fue eliminada")
     
-    # 2. Validar estado
-    if cotizacion.estado != "aceptada":
+    # 2. Validar estado (solo aceptada o borrador)
+    estados_permitidos = ["aceptada", "borrador"]
+    if cotizacion.estado not in estados_permitidos:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Solo se pueden convertir cotizaciones en estado 'aceptada'. Estado actual: '{cotizacion.estado}'."
+            detail=f"Solo se pueden convertir cotizaciones en estado 'aceptada' o 'borrador'. Estado actual: '{cotizacion.estado}'."
         )
     
     # 3. Verificar que no haya sido convertida antes
@@ -489,12 +491,47 @@ async def convertir_a_factura(
             detail="Esta cotización ya fue convertida a factura."
         )
     
-    # 4. Obtener items de la cotización
+    # 4. Validar que el cliente no esté eliminado
+    cliente_query = select(Cliente).where(
+        Cliente.id == cotizacion.cliente_id,
+        Cliente.deleted_at == None
+    )
+    cliente_result = await db.execute(cliente_query)
+    cliente = cliente_result.scalar_one_or_none()
+    
+    if not cliente:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El cliente de esta cotización fue eliminado. No se puede convertir."
+        )
+    
+    # 5. Obtener items de la cotización
     items_query = select(ItemCotizacion).where(ItemCotizacion.cotizacion_id == cotizacion_id)
     items_result = await db.execute(items_query)
     items_cotizacion = items_result.scalars().all()
     
-    # 5. Generar número de comprobante para la factura
+    if not items_cotizacion:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La cotización no tiene items. No se puede convertir."
+        )
+    
+    # 6. Validar que todos los productos no estén eliminados
+    for item_cot in items_cotizacion:
+        producto_query = select(Producto).where(
+            Producto.id == item_cot.producto_id,
+            Producto.deleted_at == None
+        )
+        producto_result = await db.execute(producto_query)
+        producto = producto_result.scalar_one_or_none()
+        
+        if not producto:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"El producto ID {item_cot.producto_id} fue eliminado. No se puede convertir."
+            )
+    
+    # 7. Generar número de comprobante para la factura
     serie = "F001"
     result = await db.execute(
         select(func.max(func.cast(Factura.numero_comprobante, Integer)))
@@ -504,7 +541,7 @@ async def convertir_a_factura(
     siguiente = (max_numero or 0) + 1
     numero_comprobante = str(siguiente).zfill(8)
     
-    # 6. Crear factura
+    # 8. Crear factura con datos de la cotización
     nueva_factura = Factura(
         numero_serie=serie,
         numero_comprobante=numero_comprobante,
@@ -514,6 +551,7 @@ async def convertir_a_factura(
         tipo_comprobante="01",
         tipo_operacion="0101",
         moneda=cotizacion.moneda,
+        tipo_cambio=cotizacion.tipo_cambio,
         subtotal=cotizacion.subtotal,
         descuento_total=cotizacion.descuento_total,
         igv_total=cotizacion.igv_total,
@@ -527,9 +565,9 @@ async def convertir_a_factura(
     db.add(nueva_factura)
     await db.flush()
     
-    # 7. Copiar items a la factura
+    # 9. Copiar items a la factura (precios CONGELADOS de la cotización)
     for item_cot in items_cotizacion:
-        # Obtener producto para campos adicionales
+        # Obtener producto para moneda_original
         producto = await db.execute(
             select(Producto).where(Producto.id == item_cot.producto_id)
         )
@@ -539,10 +577,14 @@ async def convertir_a_factura(
             factura_id=nueva_factura.id,
             producto_id=item_cot.producto_id,
             cantidad=item_cot.cantidad,
+            # Precio CONGELADO de la cotización
             precio_unitario=item_cot.precio_unitario,
+            precio_en_factura=item_cot.precio_unitario,
+            # Datos de conversión originales
             moneda_original=producto.moneda if producto else "PEN",
             precio_original=item_cot.precio_unitario,
-            precio_en_factura=item_cot.precio_unitario,
+            tipo_cambio_usado=cotizacion.tipo_cambio,
+            # IGV calculado sobre precio congelado
             igv_porcentaje=item_cot.igv_porcentaje,
             igv_monto=item_cot.igv_monto,
             subtotal=item_cot.subtotal,
@@ -551,11 +593,21 @@ async def convertir_a_factura(
         )
         db.add(nuevo_item)
     
-    # 8. Actualizar estado de cotización
+    # 10. Actualizar cotización
     cotizacion.estado = "convertida"
     cotizacion.convertida_a_factura_id = nueva_factura.id
     
-    await db.commit()
-    await db.refresh(nueva_factura)
+    # Guardar IDs antes del commit (después del commit los objetos expiran)
+    cotizacion_id = cotizacion.id
+    factura_id = nueva_factura.id
+    numero_factura = f"{serie}-{numero_comprobante}"
     
-    return nueva_factura
+    await db.commit()
+    
+    # 11. Retornar respuesta específica
+    return {
+        "cotizacion_id": cotizacion_id,
+        "factura_id": factura_id,
+        "numero_factura": numero_factura,
+        "mensaje": "Cotización convertida a factura exitosamente"
+    }

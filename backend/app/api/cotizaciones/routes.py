@@ -14,9 +14,9 @@ from app.services.cotizacion_service import (
 from app.schemas.cotizacion import (
     CreateCotizacionRequest, 
     CotizacionResponse, 
-    ItemCotizacionResponse
+    ItemCotizacionResponse,
+    ConvertirAFacturaResponse
 )
-from app.schemas.factura import FacturaResponse
 
 router = APIRouter(prefix="/api/cotizaciones", tags=["Cotizaciones"])
 
@@ -183,10 +183,10 @@ async def eliminar(
 
 @router.post(
     "/{id}/convertir-a-factura",
-    response_model=FacturaResponse,
+    response_model=ConvertirAFacturaResponse,
     status_code=201,
     summary="Convertir cotización a factura",
-    description="Convierte una cotización aceptada a factura."
+    description="Convierte una cotización a factura. Estados permitidos: 'borrador' o 'aceptada'."
 )
 async def convertir(
     id: int,
@@ -194,15 +194,24 @@ async def convertir(
     current_user: CurrentUser = Depends(get_current_user)
 ):
     """
-    Convierte una cotización a factura. **Solo funciona si estado = 'aceptada'**.
+    Convierte una cotización a factura.
     
-    - Crea una nueva factura con los mismos items de la cotización
+    **Estados permitidos**: 'borrador' o 'aceptada'
+    
+    **Validaciones**:
+    - La cotización no debe estar eliminada
+    - El cliente no debe estar eliminado
+    - Los productos no deben estar eliminados
+    - La cotización no debe haber sido convertida antes
+    
+    **Resultado**:
+    - Crea una nueva factura en estado 'borrador' con los datos de la cotización
+    - Copia los items con precios CONGELADOS (no se recalculan)
     - Cambia el estado de la cotización a 'convertida'
-    - Vincula la cotización con la factura generada
     """
-    factura = await convertir_a_factura(
+    result = await convertir_a_factura(
         db=db,
         cotizacion_id=id,
         usuario_id=current_user.usuario_id
     )
-    return factura
+    return result
