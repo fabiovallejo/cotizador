@@ -385,6 +385,13 @@ class ItemFactura(Base):
     cantidad = Column(Numeric(12, 4), nullable=False)
     precio_unitario = Column(Numeric(12, 4), nullable=False)
     
+    # ===== PRECIO ORIGINAL DE PRODUCTO =====
+    moneda_original = Column(String(3)) # moneda del producto
+    precio_original = Column(Numeric(12, 4)) # precio del producto
+    tipo_cambio_usado = Column(Numeric(10, 6)) # TC aplicado
+    precio_en_factura = Column(Numeric(12, 4)) # precio convertido
+
+
     # ===== TIPO DE AFECTACIÓN IGV (SUNAT - CRÍTICO) =====
     # 10: Gravado - Operación Onerosa (18%)
     # 20: Exonerado

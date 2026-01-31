@@ -3,7 +3,7 @@
 from decimal import Decimal
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import select
 from fastapi import HTTPException, status
 
 from app.models.tenant import Factura, ItemFactura, Cliente, Producto
@@ -45,87 +45,120 @@ async def crear_factura(
     empresa_id: int,
     usuario_id: int
 ):
-    """
-    Crea factura con TC automático de SUNAT.
-    El search_path ya viene configurado desde get_tenant_db.
-    """
     
-    # 1. Validar cliente existe
+    # 1. Validar cliente (search_path ya está seteado por get_tenant_db)
     cliente = await db.execute(
         select(Cliente).where(Cliente.id == data.cliente_id)
     )
     cliente = cliente.scalar_one_or_none()
     if not cliente:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cliente no encontrado"
+        raise HTTPException(status_code=400, detail="Cliente no encontrado")
+
+    # 2. Verificar si algún producto necesita conversión
+    necesita_tc = False
+    for item in data.items:
+        producto = await db.execute(
+            select(Producto).where(Producto.id == item.producto_id)
         )
+        producto = producto.scalar_one_or_none()
+        moneda_producto = producto.moneda or "PEN"
+        
+        if moneda_producto != data.moneda:
+            necesita_tc = True
+            break
     
-    # 2. Obtener TC si moneda no es PEN
-    tipo_cambio = None
-    if data.moneda != "PEN":
+    # 3. Obtener TC del día
+    tc_del_dia = None
+    if necesita_tc:
         try:
-            # Obtener TC de SUNAT automáticamente
-            tc_venta = await tipo_cambio_service.obtener_tc_venta_decimal()
-            tipo_cambio = tc_venta
-            logger.info(f"TC {data.moneda}: {tipo_cambio}")
+            tc_data = await tipo_cambio_service.obtener_tc_del_dia()
+            tc_del_dia = Decimal(tc_data["venta"])
+            logger.info(f"TC {data.moneda}: {tc_del_dia}")
         except Exception as e:
             logger.error(f"Error obteniendo TC: {e}")
             if not data.tipo_cambio:
                 raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    status_code=500,
                     detail="No se pudo obtener TC automático de SUNAT"
                 )
-            tipo_cambio = Decimal(str(data.tipo_cambio))
+            tc_del_dia = Decimal(str(data.tipo_cambio))
     
-    # 3. Calcular totales
-    subtotal = Decimal(0)
-    igv_total = Decimal(0)
+    # 4. Procesar items
+    subtotal_factura = Decimal(0)
+    igv_total_factura = Decimal(0)
+    items_procesados = []
     
-    items_data = []
     for item in data.items:
-        # Validar producto
+        # Obtener producto
         producto = await db.execute(
             select(Producto).where(Producto.id == item.producto_id)
         )
         producto = producto.scalar_one_or_none()
         if not producto:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Producto {item.producto_id} no encontrado"
-            )
+            raise HTTPException(status_code=400, detail=f"Producto no encontrado")
         
-        # Calcular
-        cant = Decimal(str(item.cantidad))
-        precio = Decimal(str(item.precio_unitario))
-        igv_pct = Decimal(str(item.igv_porcentaje))
+        # ===== CONVERSIÓN DE MONEDA =====
+        moneda_producto = producto.moneda or "PEN"
+        precio_original = Decimal(str(producto.precio_unitario))
+        cantidad = Decimal(str(item.cantidad))
+        igv_pct = Decimal(str(item.igv_porcentaje or 18))
         
-        item_subtotal = cant * precio
-        item_igv = item_subtotal * igv_pct / Decimal(100)
+        # Conversión: Si moneda producto != moneda factura, convertir
+        precio_en_factura = precio_original
+        tc_usado = None
         
-        subtotal += item_subtotal
-        igv_total += item_igv
+        if moneda_producto != data.moneda:
+            # Necesita conversión
+            if data.moneda == "PEN":
+                # Convertir a PEN (producto está en USD)
+                if not tc_del_dia:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"No hay TC para convertir {moneda_producto} a {data.moneda}"
+                    )
+                precio_en_factura = precio_original * tc_del_dia
+                tc_usado = tc_del_dia
+            
+            elif moneda_producto == "PEN" and data.moneda != "PEN":
+                # Convertir de PEN a USD/EUR
+                if not tc_del_dia:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"No hay TC para convertir {moneda_producto} a {data.moneda}"
+                    )
+                precio_en_factura = precio_original / tc_del_dia
+                tc_usado = tc_del_dia
+            
+            else:
+
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Conversión {moneda_producto} a {data.moneda} no soportada"
+                )
         
-        items_data.append({
-            "producto_id": item.producto_id,
-            "cantidad": cant,
-            "precio_unitario": precio,
+        # ===== CÁLCULOS DEL ITEM =====
+        subtotal_item = precio_en_factura * cantidad
+        igv_item = subtotal_item * igv_pct / Decimal(100)
+        total_item = subtotal_item + igv_item
+        
+        subtotal_factura += subtotal_item
+        igv_total_factura += igv_item
+        
+        items_procesados.append({
+            "producto_id": producto.id,
+            "moneda_original": moneda_producto,
+            "precio_original": precio_original,
+            "tipo_cambio_usado": tc_usado,
+            "precio_en_factura": precio_en_factura,
+            "cantidad": cantidad,
             "igv_porcentaje": igv_pct,
-            "igv_monto": item_igv,
-            "subtotal": item_subtotal,
-            "total": item_subtotal + item_igv,
+            "igv_monto": igv_item,
+            "subtotal": subtotal_item,
+            "total": total_item,
         })
     
-    total = subtotal + igv_total
-    
-    # 4. Convertir a PEN si es necesario
-    subtotal_en_pen = subtotal
-    total_en_pen = total
-    
-    if data.moneda != "PEN" and tipo_cambio:
-        subtotal_en_pen = subtotal * tipo_cambio
-        total_en_pen = total * tipo_cambio
-    
+    total_factura = subtotal_factura + igv_total_factura
+
     # 5. Obtener siguiente número de comprobante
     serie = data.numero_serie or "F001"
     numero_comprobante = await obtener_siguiente_numero_comprobante(db, serie)
@@ -135,18 +168,18 @@ async def crear_factura(
         usuario_id=usuario_id,
         cliente_id=data.cliente_id,
         
-        numero_serie=serie,
-        numero_comprobante=numero_comprobante,
+        numero_serie=data.numero_serie or "F001",
+        numero_comprobante=numero_comprobante, 
         
         moneda=data.moneda,
-        tipo_cambio=tipo_cambio if data.moneda != "PEN" else None,
+        tipo_cambio=tc_del_dia,
         
-        subtotal=subtotal,
-        igv_total=igv_total,
-        total=total,
+        subtotal=subtotal_factura,
+        igv_total=igv_total_factura,
+        total=total_factura,
         
-        subtotal_en_pen=subtotal_en_pen,
-        total_en_pen=total_en_pen,
+        subtotal_en_pen=None, 
+        total_en_pen=None,     
         
         tipo_operacion=data.tipo_operacion or "0101",
         forma_pago=data.forma_pago or "Contado",
@@ -160,17 +193,24 @@ async def crear_factura(
     db.add(nueva_factura)
     await db.flush()
     
-    # 6. Crear items
-    for item_data in items_data:
+    # 7. Crear items
+    for item_data in items_procesados:
         nuevo_item = ItemFactura(
             factura_id=nueva_factura.id,
             producto_id=item_data["producto_id"],
+            
+            moneda_original=item_data["moneda_original"],
+            precio_original=item_data["precio_original"],
+            tipo_cambio_usado=item_data["tipo_cambio_usado"],
+            precio_en_factura=item_data["precio_en_factura"],
+            precio_unitario=item_data["precio_en_factura"], 
+            
             cantidad=item_data["cantidad"],
-            precio_unitario=item_data["precio_unitario"],
             igv_porcentaje=item_data["igv_porcentaje"],
             igv_monto=item_data["igv_monto"],
             subtotal=item_data["subtotal"],
             total=item_data["total"],
+            
             tipo_afectacion_igv="10",
         )
         db.add(nuevo_item)

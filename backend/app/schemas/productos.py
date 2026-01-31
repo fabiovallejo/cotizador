@@ -17,7 +17,7 @@ class ProductoResponse(BaseModel):
     costo_unitario: Optional[Decimal] = None
     precio_distribuidor: Optional[Decimal] = None
     aplica_igv: bool
-    igv_porcentaje: int
+    igv_porcentaje: float
     tipo_afectacion_igv: str
     moneda: str
     unidad_medida: str
@@ -42,7 +42,7 @@ class ProductoRequest(BaseModel):
     costo_unitario: Optional[Decimal] = Field(None, ge=0)
     precio_distribuidor: Optional[Decimal] = Field(None, ge=0)
     aplica_igv: bool = Field(default=True, description="Si aplica IGV")
-    igv_porcentaje: int = Field(default=1800, description="Porcentaje IGV en centésimas (1800 = 18%)")
+    igv_porcentaje: float = Field(default=18.00, description="Porcentaje IGV")
     tipo_afectacion_igv: str = Field(default="10", pattern=r"^\d{2}$", description="10=Gravado, 20=Exonerado, 30=Inafecto")
     moneda: str = Field(default="PEN", max_length=3, description="PEN, USD, EUR")
     unidad_medida: str = Field(default="UND", max_length=20, description="UND, KG, LTR, etc")
