@@ -198,6 +198,7 @@ def crear_bd_completa():
                     igv_total NUMERIC(12,4) DEFAULT 0,
                     total NUMERIC(12,4) NOT NULL,
                     moneda VARCHAR(3) DEFAULT 'PEN',
+                    tipo_cambio NUMERIC(10, 6),
                     estado VARCHAR(50) DEFAULT 'borrador',
                     vigencia_dias INTEGER DEFAULT 30,
                     fecha_vencimiento DATE,

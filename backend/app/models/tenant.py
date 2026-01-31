@@ -176,6 +176,7 @@ class Cotizacion(Base, AuditMixin, SoftDeleteMixin):
     
     # ===== MONEDA =====
     moneda = Column(String(3), default="PEN")
+    tipo_cambio = Column(Numeric(10, 6))
     
     # ===== ESTADO =====
     estado = Column(String(50), default="borrador")  # borrador | enviada | aceptada | rechazada | vencida | convertida
