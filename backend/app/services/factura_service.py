@@ -257,3 +257,14 @@ async def listar_facturas(
     facturas = result.scalars().all()
     
     return facturas
+
+
+async def obtener_factura(db: AsyncSession, factura_id: int) -> Factura:
+    query = select(Factura).where(Factura.id == factura_id, Factura.deleted_at == None)
+    result = await db.execute(query)
+    factura = result.scalar_one_or_none()
+    
+    if not factura:
+        raise HTTPException(status_code=404, detail="Factura no encontrada")
+    
+    return factura

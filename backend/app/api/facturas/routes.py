@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from app.core.dependencies import get_current_user, get_tenant_db, CurrentUser
-from app.services.factura_service import crear_factura, listar_facturas
+from app.services.factura_service import crear_factura, listar_facturas, obtener_factura
 from app.schemas.factura import CreateFacturaRequest, FacturaResponse
 
 router = APIRouter(prefix="/api/facturas", tags=["Facturas"])
@@ -83,3 +83,26 @@ async def listar(
     )
     
     return facturas
+
+
+@router.get(
+    "/{id}",
+    summary="Obtener factura por ID",
+    description="Obtiene una factura especifica por su ID",
+    response_model=FacturaResponse
+)
+async def obtener(
+    id: int,
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Obtiene una factura especifica por su ID.
+    
+    Parámetros:
+    - id: ID de la factura
+    """
+    
+    factura = await obtener_factura(db, id)
+    
+    return factura
