@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from app.core.dependencies import get_current_user, get_tenant_db, CurrentUser
-from app.services.factura_service import crear_factura, listar_facturas, obtener_factura, obtener_items_factura, eliminar_factura
+from app.services.factura_service import crear_factura, listar_facturas, obtener_factura, obtener_items_factura, eliminar_factura, editar_factura
 from app.schemas.factura import CreateFacturaRequest, FacturaResponse, ItemFacturaResponse
 
 router = APIRouter(prefix="/api/facturas", tags=["Facturas"])
@@ -150,3 +150,57 @@ async def eliminar(
     await eliminar_factura(db, id)
     
     return {"message": "Factura eliminada correctamente"}
+
+
+@router.put(
+    "/{id}",
+    summary="Editar una factura",
+    description="Editar una factura específica por su ID. Solo funciona si la factura está en estado 'borrador'.",
+    response_model=FacturaResponse
+)
+async def editar(
+    data: CreateFacturaRequest,
+    id: int,
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Edita una factura específica por su ID.
+    
+    **Solo permite edición si la factura está en estado 'borrador'.**
+    
+    Parámetros:
+    - id: ID de la factura (en la URL)
+    
+    Ejemplo JSON:
+    ```json
+    {
+        "cliente_id": 1,
+        "moneda": "PEN",
+        "numero_serie": "F001",
+        "forma_pago": "Contado",
+        "items": [
+            {
+                "producto_id": 1,
+                "cantidad": 5,
+                "precio_unitario": 100.00,
+                "igv_porcentaje": 18
+            },
+            {
+                "producto_id": 2,
+                "cantidad": 3,
+                "precio_unitario": 50.00,
+                "igv_porcentaje": 18
+            }
+        ]
+    }
+    ```
+    
+    Notas:
+    - Para agregar items: incluirlos en el array "items"
+    - Para eliminar items: no incluirlos en el array "items"
+    """
+    
+    factura = await editar_factura(db, id, data)
+    
+    return factura

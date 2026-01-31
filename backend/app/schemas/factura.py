@@ -8,8 +8,6 @@ from datetime import datetime
 class CreateItemFacturaRequest(BaseModel):
     producto_id: int
     cantidad: Decimal = Field(..., gt=0)
-    precio_unitario: Decimal = Field(..., gt=0)
-    igv_porcentaje: int = Field(default=18, ge=0, le=100)
 
 class CreateFacturaRequest(BaseModel):
     cliente_id: int
