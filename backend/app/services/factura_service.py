@@ -268,3 +268,11 @@ async def obtener_factura(db: AsyncSession, factura_id: int) -> Factura:
         raise HTTPException(status_code=404, detail="Factura no encontrada")
     
     return factura
+
+
+async def obtener_items_factura(db: AsyncSession, factura_id: int) -> list[ItemFactura]:
+    query = select(ItemFactura).where(ItemFactura.factura_id == factura_id)
+    result = await db.execute(query)
+    items = result.scalars().all()
+    
+    return items

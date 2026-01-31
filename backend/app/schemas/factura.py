@@ -3,6 +3,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from decimal import Decimal
+from datetime import datetime
 
 class CreateItemFacturaRequest(BaseModel):
     producto_id: int
@@ -32,6 +33,28 @@ class FacturaResponse(BaseModel):
     subtotal_en_pen: Optional[Decimal] = None
     total_en_pen: Optional[Decimal] = None
     estado: str
+    
+    class Config:
+        from_attributes = True
+
+
+class ItemFacturaResponse(BaseModel):
+    id: int
+    factura_id: int
+    producto_id: int
+    cantidad: Decimal
+    precio_unitario: Decimal
+    moneda_original: Optional[str] = None
+    precio_original: Optional[Decimal] = None
+    tipo_cambio_usado: Optional[Decimal] = None
+    precio_en_factura: Decimal
+    igv_porcentaje: Decimal
+    igv_monto: Decimal
+    subtotal: Decimal
+    total: Decimal
+    tipo_afectacion_igv: str = "10"
+    orden_item: Optional[int] = None
+    created_at: Optional[datetime] = None
     
     class Config:
         from_attributes = True
