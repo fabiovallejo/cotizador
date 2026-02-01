@@ -333,7 +333,13 @@ def crear_bd_completa():
             # Inicializar secuencias
             connection.execute(text("""
                 INSERT INTO empresa_1.secuencias (tipo_documento, serie, proximo_numero)
-                VALUES ('01', 'F001', 1), ('03', 'B001', 1)
+                VALUES 
+                ('01', 'F001', 1), 
+                ('01', 'F002', 1),
+                ('03', 'B001', 1), 
+                ('03', 'B002', 1),
+                ('07', 'NC01', 1),
+                ('08', 'ND01', 1)
                 ON CONFLICT (tipo_documento, serie) DO NOTHING
             """))
             

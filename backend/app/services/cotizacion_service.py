@@ -531,15 +531,12 @@ async def convertir_a_factura(
                 detail=f"El producto ID {item_cot.producto_id} fue eliminado. No se puede convertir."
             )
     
-    # 7. Generar número de comprobante para la factura
+    # 7. Generar número de comprobante usando función centralizada
+    from app.services.factura_service import obtener_siguiente_numero_comprobante
+    
     serie = "F001"
-    result = await db.execute(
-        select(func.max(func.cast(Factura.numero_comprobante, Integer)))
-        .where(Factura.numero_serie == serie)
-    )
-    max_numero = result.scalar_one_or_none()
-    siguiente = (max_numero or 0) + 1
-    numero_comprobante = str(siguiente).zfill(8)
+    tipo_documento = "01"  # Factura
+    numero_comprobante = await obtener_siguiente_numero_comprobante(db, serie, tipo_documento)
     
     # 8. Crear factura con datos de la cotización
     nueva_factura = Factura(

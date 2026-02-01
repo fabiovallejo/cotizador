@@ -7,7 +7,7 @@ from sqlalchemy import select, or_
 from fastapi import HTTPException, status
 from typing import Optional
 
-from app.models.tenant import Factura, ItemFactura, Cliente, Producto
+from app.models.tenant import Factura, ItemFactura, Cliente, Producto, Secuencia
 from app.services.tipo_cambio_service import tipo_cambio_service
 from app.schemas.factura import CreateFacturaRequest
 from sqlalchemy import func
@@ -18,27 +18,57 @@ logger = logging.getLogger(__name__)
 
 async def obtener_siguiente_numero_comprobante(
     db: AsyncSession,
-    numero_serie: str
+    numero_serie: str,
+    tipo_documento: str = "01"
 ) -> str:
     """
-    Obtiene el siguiente número de comprobante para una serie.
-    Formato: 8 dígitos con ceros a la izquierda (ej: 00000001)
-    Usa CAST a INTEGER para comparación numérica correcta.
+    Obtiene el siguiente número de comprobante usando la tabla secuencias.
+    
+    Usa FOR UPDATE para lockear la fila y evitar race conditions
+    cuando múltiples usuarios crean facturas simultáneamente.
+    
+    SUNAT exige numeración CONSECUTIVA sin saltos.
+    
+    Args:
+        db: Sesión de base de datos
+        numero_serie: Serie del comprobante (F001, B001, etc)
+        tipo_documento: Tipo SUNAT (01=Factura, 03=Boleta, 07=NC, 08=ND)
+    
+    Returns:
+        Número de comprobante formateado con 8 dígitos (ej: 00000001)
     """
-    from sqlalchemy import Integer
     
-    result = await db.execute(
-        select(func.max(func.cast(Factura.numero_comprobante, Integer)))
-        .where(Factura.numero_serie == numero_serie)
+    # 1. Obtener secuencia y lockear para actualización
+    resultado = await db.execute(
+        select(Secuencia)
+        .where(
+            Secuencia.serie == numero_serie,
+            Secuencia.tipo_documento == tipo_documento
+        )
+        .with_for_update()  # LOCK: Evita race condition
     )
-    max_numero = result.scalar_one_or_none()
+    secuencia = resultado.scalar_one_or_none()
     
-    if max_numero:
-        siguiente = max_numero + 1
-    else:
-        siguiente = 1
+    if not secuencia:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Serie {numero_serie} no configurada para tipo de documento {tipo_documento}. "
+                   f"Contacte al administrador para configurar la secuencia."
+        )
     
-    return str(siguiente).zfill(8)
+    # 2. Obtener número actual
+    numero_actual = secuencia.proximo_numero
+    
+    # 3. Incrementar para próxima vez
+    secuencia.proximo_numero += 1
+    secuencia.updated_at = datetime.utcnow()
+    
+    # NO hacer commit aquí - se hará en la transacción principal
+    # El lock se libera cuando la transacción padre hace commit
+    
+    # 4. Retornar formateado
+    return str(numero_actual).zfill(8)
+
 
 async def crear_factura(
     db: AsyncSession,
@@ -162,7 +192,17 @@ async def crear_factura(
 
     # 5. Obtener siguiente número de comprobante
     serie = data.numero_serie or "F001"
-    numero_comprobante = await obtener_siguiente_numero_comprobante(db, serie)
+    # Determinar tipo_documento según la serie
+    # F=Factura(01), B=Boleta(03), NC=Nota Crédito(07), ND=Nota Débito(08)
+    if serie.startswith("NC"):
+        tipo_documento = "07"
+    elif serie.startswith("ND"):
+        tipo_documento = "08"
+    elif serie.startswith("B"):
+        tipo_documento = "03"
+    else:
+        tipo_documento = "01"  # Default: Factura
+    numero_comprobante = await obtener_siguiente_numero_comprobante(db, serie, tipo_documento)
     
     # 6. Crear factura
     nueva_factura = Factura(
