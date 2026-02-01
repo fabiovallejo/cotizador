@@ -122,6 +122,33 @@ def crear_bd_completa():
             connection.execute(text("CREATE INDEX IF NOT EXISTS idx_audit_global_empresa_timestamp ON public.audit_global(empresa_id, created_at)"))
             connection.execute(text("CREATE INDEX IF NOT EXISTS idx_audit_global_usuario_timestamp ON public.audit_global(usuario_id, created_at)"))
             connection.execute(text("CREATE INDEX IF NOT EXISTS idx_audit_global_accion ON public.audit_global(accion)"))
+
+            # Tabla: configuracion_empresa
+            connection.execute(text("""
+                CREATE TABLE IF NOT EXISTS public.configuracion_empresa (
+                    id SERIAL PRIMARY KEY,
+                    empresa_id INTEGER NOT NULL UNIQUE REFERENCES public.empresas(id) ON DELETE CASCADE,
+                    
+                    serie_factura VARCHAR(4) DEFAULT 'F001',
+                    serie_boleta VARCHAR(4) DEFAULT 'B001',
+                    serie_nc VARCHAR(4) DEFAULT 'NC01',
+                    serie_nd VARCHAR(4) DEFAULT 'ND01',
+                    
+                    ruta_certificado VARCHAR(500),
+                    contraseña_certificado VARCHAR(255),
+                    
+                    logo_url VARCHAR(500),
+                    telefono VARCHAR(20),
+                    email VARCHAR(255),
+                    
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+                )
+            """))
+            
+            # Índices para configuracion_empresa
+            connection.execute(text("CREATE INDEX IF NOT EXISTS idx_configuracion_empresa_empresa_id ON public.configuracion_empresa(empresa_id)"))
+
             
             # ===== 3. CREAR SCHEMA EMPRESA_1 (EJEMPLO) =====
             logger.info("📁 Creando schema empresa_1...")

@@ -188,3 +188,36 @@ class AuditGlobal(Base):
     
     def __repr__(self):
         return f"<AuditGlobal(accion={self.accion}, tabla={self.tabla})>"
+
+
+# ============================================================================
+# TABLA: CONFIGURACION_EMPRESA (Para series y certificados)
+# ============================================================================
+
+class ConfiguracionEmpresa(Base):
+    """
+    Tabla para guardar la configuración de la empresa.
+    Datos para PDF, guaardado de series, certificado digital, etc.
+    """
+    __tablename__ = "configuracion_empresa"
+    
+    id = Column(Integer, primary_key=True)
+    empresa_id = Column(Integer, ForeignKey("public.empresas.id"))
+    
+    # SERIE ACTUAL DE COMPROBANTES
+    serie_factura = Column(String(4), default="F001")  # F001, F002, etc
+    serie_boleta = Column(String(4), default="B001")
+    serie_nc = Column(String(4), default="NC01")
+    serie_nd = Column(String(4), default="ND01")
+    
+    # CERTIFICADO DIGITAL (para SUNAT)
+    ruta_certificado = Column(String(500))  # /path/to/cert.p12
+    contraseña_certificado = Column(String(255))  # Encriptado
+    
+    # LOGO/DATOS PARA PDF
+    logo_url = Column(String(500))
+    telefono = Column(String(20))
+    email = Column(String(255))
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
