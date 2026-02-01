@@ -42,6 +42,7 @@ from app.api.clientes.routes import router as clientes_router
 from app.api.productos.routes import router as productos_router
 from app.api.facturas.routes import router as facturas_router
 from app.api.cotizaciones.routes import router as cotizaciones_router
+from app.api.empresa.routes import router as empresa_router
 
 app.include_router(auth_router)
 app.include_router(admin_router)
@@ -49,6 +50,7 @@ app.include_router(clientes_router)
 app.include_router(productos_router)
 app.include_router(facturas_router)
 app.include_router(cotizaciones_router)
+app.include_router(empresa_router)
 
 logger.info(f" Aplicación configurada en modo {settings.environment}")
 
