@@ -1,5 +1,5 @@
 ROLES_DISPONIBLES = {
-    "admin": {
+    "administrador": {
         "nombre": "Administrador",
         "descripcion": "Control total del sistema",
         "permisos": [
@@ -126,19 +126,6 @@ ROLES_DISPONIBLES = {
             "facturas:descargar_pdf",
         ]
     },
-    
-    "cliente_portal": {
-        "nombre": "Cliente (Portal)",
-        "descripcion": "Cliente accede a su propia información",
-        "permisos": [
-            # Solo sus propios datos
-            "facturas:leer_propias",
-            "facturas:descargar_pdf",
-            "cotizaciones:leer_propias",
-            "reportes:ver_propias",
-        ]
-    },
-    
     "readonly": {
         "nombre": "Solo Lectura",
         "descripcion": "Acceso de visualización sin edición",

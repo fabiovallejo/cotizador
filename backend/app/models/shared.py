@@ -126,7 +126,7 @@ class Usuario(Base, AuditMixin, SoftDeleteMixin):
     apellido = Column(String(255))
     
     # ===== ROL (PERMISOS) =====
-    rol = Column(String(50), default="vendedor")  # admin | contador | vendedor | readonly
+    rol = Column(String(50), default="vendedor")  # administrador | contador | gerente_ventas | vendedor | operario | readonly
     
     # ===== ESTADO =====
     estado = Column(String(20), default="activo")  # activo | inactivo | bloqueado
