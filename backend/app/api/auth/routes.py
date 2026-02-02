@@ -5,7 +5,12 @@ from app.core.database import get_db
 from app.core.security import create_access_token
 from app.core.dependencies import get_current_user, CurrentUser
 from app.services.auth_service import authenticate_user
+from app.services.password_reset_service import solicitar_reset_password, resetear_password
 from app.schemas.auth import LoginRequest, TokenResponse, UserResponse
+from app.schemas.usuarios import (
+    OlvidePasswordRequest, OlvidePasswordResponse,
+    ResetearPasswordRequest, ResetearPasswordResponse
+)
 
 
 router = APIRouter(prefix="/api/auth", tags=["Autenticación"])
@@ -60,3 +65,67 @@ async def get_me(
         rol=current_user.rol,
         db_schema=current_user.db_schema
     )
+
+
+# ============================================================================
+# RECUPERAR CONTRASEÑA
+# ============================================================================
+
+@router.post(
+    "/olvide-password",
+    response_model=OlvidePasswordResponse,
+    summary="Solicitar recuperación de contraseña",
+    description="Genera un token de recuperación de contraseña."
+)
+async def post_olvide_password(
+    data: OlvidePasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Solicita un token para restablecer la contraseña.
+    
+    SEGURIDAD: Siempre retorna éxito para evitar enumeración de emails.
+    
+    En desarrollo: Retorna el token directamente.
+    En producción: El token se envía por email.
+    
+    Ejemplo JSON:
+    ```json
+    {
+        "email": "usuario@empresa.com"
+    }
+    ```
+    """
+    result = await solicitar_reset_password(db, data)
+    return OlvidePasswordResponse(**result)
+
+
+@router.post(
+    "/resetear-password/{token}",
+    response_model=ResetearPasswordResponse,
+    summary="Restablecer contraseña con token",
+    description="Restablece la contraseña usando un token válido."
+)
+async def post_resetear_password(
+    token: str,
+    data: ResetearPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Restablece la contraseña usando el token recibido por email.
+    
+    Validaciones:
+    - Token debe existir
+    - Token no debe estar usado
+    - Token no debe estar expirado (24 horas)
+    - Nueva contraseña debe tener al menos 8 caracteres, 1 mayúscula y 1 número
+    
+    Ejemplo JSON:
+    ```json
+    {
+        "password_nuevo": "NewPassword123!"
+    }
+    ```
+    """
+    result = await resetear_password(db, token, data)
+    return ResetearPasswordResponse(**result)

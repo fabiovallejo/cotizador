@@ -1,3 +1,4 @@
+from app.schemas.usuarios import UpdateMiPerfilRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException, status
@@ -208,5 +209,121 @@ async def eliminar_usuario(
 
     await db.commit()
     await db.refresh(usuario)
+    
+    return usuario
+
+
+# ============================================================================
+# CAMBIAR CONTRASEÑA
+# ============================================================================
+
+async def cambiar_password(
+    db: AsyncSession,
+    usuario_id: int,
+    data  # CambiarPasswordRequest - evita import circular
+) -> Usuario:
+    """
+    Cambia la contraseña del usuario autenticado.
+    
+    Validaciones:
+    - Verifica la contraseña actual
+    - La nueva contraseña debe ser diferente (validado en schema)
+    """
+    # Obtener usuario
+    result = await db.execute(
+        select(Usuario).where(Usuario.id == usuario_id)
+    )
+    usuario = result.scalar_one_or_none()
+    
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    # Verificar contraseña actual (en threadpool, es bloqueante)
+    es_correcto = await run_in_threadpool(
+        verify_password,
+        data.password_actual,
+        usuario.password_hash
+    )
+    
+    if not es_correcto:
+        logger.warning(f"Intento fallido de cambio de contraseña para: {usuario.email}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Contraseña actual incorrecta"
+        )
+    
+    # Hash nueva contraseña
+    nuevo_hash = await run_in_threadpool(hash_password, data.password_nuevo)
+    usuario.password_hash = nuevo_hash
+    
+    await db.commit()
+    await db.refresh(usuario)
+    
+    logger.warning(f"Cambio de contraseña exitoso para usuario: {usuario.email}")
+    
+    return usuario
+
+
+# ============================================================================
+# MI PERFIL
+# ============================================================================
+
+async def obtener_mi_perfil(
+    db: AsyncSession,
+    usuario_id: int
+) -> Usuario:
+    """
+    Obtiene el perfil completo del usuario autenticado.
+    """
+    result = await db.execute(
+        select(Usuario).where(Usuario.id == usuario_id)
+    )
+    usuario = result.scalar_one_or_none()
+    
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    return usuario
+
+
+async def actualizar_mi_perfil(
+    db: AsyncSession,
+    usuario_id: int,
+    data: UpdateMiPerfilRequest
+) -> Usuario:
+    """
+    Actualiza el perfil del usuario autenticado.
+    
+    Solo puede actualizar:
+    - nombre
+    - apellido
+    """
+    result = await db.execute(
+        select(Usuario).where(Usuario.id == usuario_id)
+    )
+    usuario = result.scalar_one_or_none()
+    
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    # Actualizar solo campos proporcionados
+    if data.nombre is not None:
+        usuario.nombre = data.nombre
+    if data.apellido is not None:
+        usuario.apellido = data.apellido
+    
+    await db.commit()
+    await db.refresh(usuario)
+    
+    logger.info(f"Perfil actualizado para usuario: {usuario.email}")
     
     return usuario

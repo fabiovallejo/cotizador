@@ -2,9 +2,17 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_current_user, get_tenant_db, CurrentUser
 from app.services.empresa_service import obtener_configuracion, actualizar_configuracion
-from app.services.usuario_service import crear_usuario, obtener_usuario, actualizar_usuario, eliminar_usuario, listar_usuarios
+from app.services.usuario_service import (
+    crear_usuario, obtener_usuario, actualizar_usuario, 
+    eliminar_usuario, listar_usuarios,
+    cambiar_password, obtener_mi_perfil, actualizar_mi_perfil
+)
 from app.schemas.empresa import ConfiguracionEmpresaResponse, UpdateConfiguracionEmpresaRequest
-from app.schemas.usuarios import createUsuarioRequest, updateUsuarioRequest, usuarioResponse
+from app.schemas.usuarios import (
+    createUsuarioRequest, updateUsuarioRequest, usuarioResponse,
+    CambiarPasswordRequest, CambiarPasswordResponse,
+    UpdateMiPerfilRequest, MiPerfilResponse
+)
 
 router = APIRouter(prefix="/api/empresa", tags=["Empresa"])
 
@@ -100,6 +108,93 @@ async def get_usuarios(
     usuarios = await listar_usuarios(db, current_user.empresa_id, current_user)
     return usuarios
 
+
+# ============================================================================
+# MI PERFIL Y CAMBIAR CONTRASEÑA 
+# ============================================================================
+
+@router.get(
+    "/usuarios/me",
+    response_model=MiPerfilResponse,
+    summary="Obtener mi perfil",
+    description="Obtiene el perfil completo del usuario autenticado."
+)
+async def get_mi_perfil(
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Retorna los datos completos del perfil del usuario autenticado.
+    
+    Incluye: id, email, nombre, apellido, rol, estado, empresa_id, 
+    created_at, ultimo_login
+    """
+    usuario = await obtener_mi_perfil(db, current_user.usuario_id)
+    return usuario
+
+
+@router.put(
+    "/usuarios/me",
+    response_model=MiPerfilResponse,
+    summary="Actualizar mi perfil",
+    description="Actualiza el perfil del usuario autenticado."
+)
+async def put_mi_perfil(
+    data: UpdateMiPerfilRequest,
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Actualiza el nombre y/o apellido del usuario autenticado.
+    
+    Solo se actualizan los campos proporcionados.
+    
+    Ejemplo JSON:
+    ```json
+    {
+        "nombre": "Juan Carlos",
+        "apellido": "Pérez García"
+    }
+    ```
+    """
+    usuario = await actualizar_mi_perfil(db, current_user.usuario_id, data)
+    return usuario
+
+
+@router.put(
+    "/usuarios/cambiar-password",
+    response_model=CambiarPasswordResponse,
+    summary="Cambiar contraseña propia",
+    description="Permite al usuario autenticado cambiar su contraseña."
+)
+async def put_cambiar_password(
+    data: CambiarPasswordRequest,
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Cambia la contraseña del usuario autenticado.
+    
+    Requisitos:
+    - Proporcionar contraseña actual correcta
+    - Nueva contraseña debe ser diferente a la actual
+    - Nueva contraseña debe tener al menos 8 caracteres, 1 mayúscula y 1 número
+    
+    Ejemplo JSON:
+    ```json
+    {
+        "password_actual": "Password123!",
+        "password_nuevo": "NewPassword456!"
+    }
+    ```
+    """
+    await cambiar_password(db, current_user.usuario_id, data)
+    return CambiarPasswordResponse()
+
+
+# ============================================================================
+# CRUD USUARIOS POR ID
+# ============================================================================
 
 @router.get("/usuarios/{id}", response_model=usuarioResponse)
 async def get_usuario(

@@ -221,3 +221,44 @@ class ConfiguracionEmpresa(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ============================================================================
+# TABLA: PASSWORD_RESET_TOKENS (Para recuperación de contraseña)
+# ============================================================================
+
+class PasswordResetToken(Base):
+    """
+    Almacena tokens temporales para recuperación de contraseña.
+    
+    Seguridad:
+    - Token generado con secrets.token_urlsafe(32)
+    - Expira en 24 horas
+    - Solo puede usarse una vez (used_at marca el uso)
+    """
+    __tablename__ = "password_reset_tokens"
+    __table_args__ = (
+        Index("idx_reset_token", "token"),
+        Index("idx_reset_usuario", "usuario_id"),
+        {"schema": "public"},
+    )
+    
+    id = Column(Integer, primary_key=True)
+    
+    # ===== RELACIÓN CON USUARIO =====
+    usuario_id = Column(Integer, ForeignKey("public.usuarios.id"), nullable=False)
+    
+    # ===== TOKEN =====
+    token = Column(String(64), unique=True, nullable=False)
+    
+    # ===== EXPIRACIÓN =====
+    expires_at = Column(DateTime, nullable=False)
+    
+    # ===== MARCA DE USO (NULL = no usado) =====
+    used_at = Column(DateTime)
+    
+    # ===== TIMESTAMPS =====
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<PasswordResetToken(usuario_id={self.usuario_id}, expires_at={self.expires_at})>"

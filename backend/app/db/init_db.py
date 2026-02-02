@@ -32,11 +32,11 @@ def crear_bd_completa():
         with engine.connect() as connection:
             
             # ===== 1. CREAR SCHEMA PUBLIC =====
-            logger.info("📁 Creando schema public...")
+            logger.info("Creando schema public...")
             connection.execute(text("CREATE SCHEMA IF NOT EXISTS public"))
             
             # ===== 2. CREAR TABLAS EN SCHEMA PUBLIC =====
-            logger.info("📊 Creando tablas en schema public...")
+            logger.info("Creando tablas en schema public...")
             
             # Tabla: empresas
             connection.execute(text("""
@@ -149,13 +149,34 @@ def crear_bd_completa():
             # Índices para configuracion_empresa
             connection.execute(text("CREATE INDEX IF NOT EXISTS idx_configuracion_empresa_empresa_id ON public.configuracion_empresa(empresa_id)"))
 
+           
+            # Tabla: password_reset_tokens
+            connection.execute(text("""
+                CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
+                    id SERIAL PRIMARY KEY,
+                    
+                    usuario_id INTEGER NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+                    
+                    token VARCHAR(64) NOT NULL UNIQUE,
+                    
+                    expires_at TIMESTAMP NOT NULL,
+                    
+                    used_at TIMESTAMP,
+                    
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+                )
+            """))
+            
+            # Índices para password_reset_tokens
+            connection.execute(text("CREATE INDEX IF NOT EXISTS idx_reset_token ON public.password_reset_tokens(token)"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS idx_reset_usuario ON public.password_reset_tokens(usuario_id)"))
             
             # ===== 3. CREAR SCHEMA EMPRESA_1 (EJEMPLO) =====
-            logger.info("📁 Creando schema empresa_1...")
+            logger.info("Creando schema empresa_1...")
             connection.execute(text("CREATE SCHEMA IF NOT EXISTS empresa_1"))
             
             # ===== 4. CREAR TABLAS EN SCHEMA EMPRESA_1 =====
-            logger.info("📊 Creando tablas en schema empresa_1...")
+            logger.info("Creando tablas en schema empresa_1...")
             
             # Tabla: productos
             connection.execute(text("""
@@ -429,7 +450,7 @@ def crear_bd_completa():
             
             # Resumen
             print("\n" + "="*60)
-            print("✅ ARQUITECTURA DE BD CREADA EXITOSAMENTE")
+            print("ARQUITECTURA DE BD CREADA EXITOSAMENTE")
             print("="*60)
             print("\nSchema Public (Compartido):")
             print("  ├─ empresas")
@@ -448,11 +469,11 @@ def crear_bd_completa():
             print("\nPróximos pasos:")
             print("  1. Insertar empresa en public.empresas")
             print("  2. Insertar usuario en public.usuarios")
-            print("  3. Usar el sistema 🚀")
+            print("  3. Usar el sistema")
             print("="*60 + "\n")
     
     except Exception as e:
-        logger.error(f"❌ Error creando BD: {e}")
+        logger.error(f"Error creando BD: {e}")
         raise
     finally:
         engine.dispose()
