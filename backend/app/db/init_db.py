@@ -24,8 +24,12 @@ def crear_bd_completa():
     2. Schema empresa_1 como ejemplo
     3. Todos los índices y constraints
     """
-    
+
     db_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+    print(f"\n🔍 DEBUG: Conectando a: {db_url}")
+    print(f"🔍 DEBUG: db_name = {settings.db_name}")
+    print(f"🔍 DEBUG: db_host = {settings.db_host}")
+    print(f"🔍 DEBUG: db_port = {settings.db_port}\n")
     engine = create_engine(db_url, poolclass=NullPool, echo=False)
     
     try:

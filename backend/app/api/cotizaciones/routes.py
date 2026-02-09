@@ -1,5 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import Optional
 from app.core.dependencies import get_current_user, get_tenant_db, CurrentUser
 from app.services.cotizacion_service import (
@@ -17,6 +20,9 @@ from app.schemas.cotizacion import (
     ItemCotizacionResponse,
     ConvertirAFacturaResponse
 )
+from app.models.tenant import Cotizacion, ItemCotizacion, Cliente
+from app.models.shared import Empresa
+from app.services.pdf.pdf_generator import pdf_generator
 
 router = APIRouter(prefix="/api/cotizaciones", tags=["Cotizaciones"])
 
@@ -91,6 +97,73 @@ async def listar(
         busqueda=busqueda
     )
     return cotizaciones
+
+
+@router.get(
+    "/{id}/pdf",
+    summary="Descargar PDF de cotización",
+    description="Genera y descarga el PDF de una cotización específica."
+)
+async def descargar_pdf_cotizacion(
+    id: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_tenant_db)
+):
+    """
+    Descarga PDF de cotización.
+    
+    El PDF incluye:
+    - Datos de la empresa
+    - Datos del cliente
+    - Número de cotización
+    - Vigencia/validez en días
+    - Items con productos
+    - Términos y condiciones
+    - Notas internas
+    """
+    
+    # 1. Obtener cotización
+    cotizacion = await db.execute(
+        select(Cotizacion).where(Cotizacion.id == id)
+    )
+    cotizacion = cotizacion.scalar_one_or_none()
+    
+    if not cotizacion:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    
+    # 2. Obtener cliente
+    cliente = await db.get(Cliente, cotizacion.cliente_id)
+    
+    # 3. Obtener items con producto (eager loading)
+    items = await db.execute(
+        select(ItemCotizacion)
+        .options(selectinload(ItemCotizacion.producto))
+        .where(ItemCotizacion.cotizacion_id == id)
+    )
+    items = items.scalars().all()
+    
+    # 4. Obtener empresa
+    empresa = await db.execute(
+        select(Empresa).where(Empresa.id == current_user.empresa_id)
+    )
+    empresa = empresa.scalar_one()
+    
+    # 5. Generar PDF
+    pdf_buffer = await pdf_generator.generar_pdf_cotizacion(
+        cotizacion=cotizacion,
+        cliente=cliente,
+        items=items,
+        empresa=empresa
+    )
+    
+    # 6. Retornar
+    return StreamingResponse(
+        iter([pdf_buffer.getvalue()]),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={cotizacion.numero_cotizacion}.pdf"
+        }
+    )
 
 
 @router.get(

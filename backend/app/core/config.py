@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     #Base de datos
     db_user: str = "facturacion"
     db_password: str = "SecurePassword123!"
-    db_host: str = "localhost"
+    db_host: str = "postgres"
     db_port: int = 5432
     db_name: str = "facturacion_db"
 

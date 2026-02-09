@@ -65,14 +65,15 @@ async def get_tenant_db(
     Crea una sesión de BD con el search_path configurado al schema del tenant.
     """
     async with AsyncSessionLocal() as session:
-        # Obtener la conexión subyacente para asegurar que el SET search_path
-        # se ejecute correctamente en la misma conexión que las operaciones ORM
-        conn = await session.connection()
-        await conn.execute(
+        # Configurar search_path al schema del tenant
+        await session.execute(
             text(f'SET search_path TO "{current_user.db_schema}", public')
         )
+        
         try:
             yield session
         except Exception:
             await session.rollback()
             raise
+        finally:
+            await session.close()
