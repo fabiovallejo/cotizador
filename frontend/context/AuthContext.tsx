@@ -1,14 +1,17 @@
-'use client';
+"use client";
 
-import React, { createContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { createContext, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import type { User } from "@/types/auth";
+import {
+    loginRequest,
+    obtenerUsuarioActual,
+    logout as authLogout,
+} from "@/services/auth.service";
 
-export interface User {
-    usuario_id: number;
-    empresa_id: number;
-    rol: string;
-    email: string;
-}
+// ============================================================================
+// Tipos del contexto
+// ============================================================================
 
 export interface AuthContextType {
     user: User | null;
@@ -20,36 +23,70 @@ export interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// ============================================================================
+// Provider
+// ============================================================================
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
+    /**
+     * Al montar: si hay token guardado, valida con /auth/me
+     * para restaurar la sesión del usuario.
+     */
     useEffect(() => {
-        // Verificar si hay token guardado
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            // Aquí puedes validar el token con el backend
-            // Por ahora lo dejamos como está
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            setLoading(false);
+            return;
         }
-        setLoading(false);
+
+        obtenerUsuarioActual()
+            .then((userData) => {
+                setUser(userData);
+            })
+            .catch(() => {
+                // Token inválido o expirado — limpiar
+                localStorage.removeItem("access_token");
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, []);
 
-    const login = async (email: string, password: string) => {
-        // TODO: Implementar login con backend
-        // const response = await api.post('/auth/login', { email, password });
-        // localStorage.setItem('access_token', response.data.access_token);
-        // setUser(response.data.user);
-    };
+    /**
+     * Login: llama al backend, guarda el token, obtiene datos del usuario,
+     * y redirige al dashboard de su empresa.
+     */
+    const login = useCallback(
+        async (email: string, password: string) => {
+            const data = await loginRequest(email, password);
+            localStorage.setItem("access_token", data.access_token);
 
-    const logout = () => {
-        localStorage.removeItem('access_token');
+            // Obtener datos del usuario
+            const userData = await obtenerUsuarioActual();
+            setUser(userData);
+
+            // Redirigir al dashboard
+            router.push("/dashboard");
+        },
+        [router]
+    );
+
+    /**
+     * Logout: limpia estado y redirige al login.
+     */
+    const logout = useCallback(() => {
         setUser(null);
-        router.push('/auth/login');
-    };
+        authLogout();
+    }, []);
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
+        <AuthContext.Provider
+            value={{ user, loading, login, logout, isAuthenticated: !!user }}
+        >
             {children}
         </AuthContext.Provider>
     );
