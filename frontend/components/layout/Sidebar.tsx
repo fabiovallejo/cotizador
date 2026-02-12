@@ -34,7 +34,7 @@ const MENU_ITEMS = [
         href: "/dashboard/documentos",
         submenu: [
             { title: "Facturas", href: "/dashboard/documentos/facturas", icon: Files },
-            { title: "Cotizaciones", href: "/dashboard/documentos/cotizaciones", icon: FileText },
+            { title: "Cotizaciones", href: "/dashboard/cotizaciones", icon: FileText },
         ],
     },
     {

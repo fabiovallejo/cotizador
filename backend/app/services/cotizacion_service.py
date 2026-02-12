@@ -200,6 +200,7 @@ async def listar_cotizaciones(
     limit: int = 50,
     estado: Optional[str] = None,
     busqueda: Optional[str] = None,
+    usuario_id: Optional[int] = None,
 ) -> list[Cotizacion]:
     """
     Lista cotizaciones con filtros y paginación.
@@ -208,6 +209,9 @@ async def listar_cotizaciones(
     
     if estado:
         query = query.where(Cotizacion.estado == estado)
+    
+    if usuario_id:
+        query = query.where(Cotizacion.usuario_id == usuario_id)
     
     if busqueda:
         query = query.where(

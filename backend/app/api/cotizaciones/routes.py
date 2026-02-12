@@ -75,6 +75,7 @@ async def listar(
     skip: int = Query(0, ge=0, description="Registros a saltar"),
     limit: int = Query(50, ge=1, le=100, description="Máximo de registros"),
     estado: Optional[str] = Query(None, description="Filtrar por estado: borrador | enviada | aceptada | rechazada | convertida"),
+    usuario_id: Optional[int] = Query(None, description="Filtrar por vendedor (usuario_id)"),
     busqueda: Optional[str] = Query(None, description="Buscar por número de cotización, razón social o documento del cliente"),
     db: AsyncSession = Depends(get_tenant_db),
     current_user: CurrentUser = Depends(get_current_user)
@@ -94,7 +95,8 @@ async def listar(
         skip=skip,
         limit=limit,
         estado=estado,
-        busqueda=busqueda
+        busqueda=busqueda,
+        usuario_id=usuario_id
     )
     return cotizaciones
 

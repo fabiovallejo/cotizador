@@ -22,6 +22,7 @@ class CotizacionResponse(BaseModel):
     id: int
     numero_cotizacion: str
     cliente_id: int
+    usuario_id: int
     moneda: str
     tipo_cambio: Optional[Decimal] = None
     subtotal: Decimal
