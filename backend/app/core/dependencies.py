@@ -65,11 +65,24 @@ async def get_tenant_db(
     Crea una sesión de BD con el search_path configurado al schema del tenant.
     """
     async with AsyncSessionLocal() as session:
+        schema = current_user.db_schema
+
         # Configurar search_path al schema del tenant
         await session.execute(
-            text(f'SET search_path TO "{current_user.db_schema}", public')
+            text(f'SET search_path TO "{schema}", public')
         )
-        
+
+        # Guardar el commit original y crear un wrapper que re-establece el search_path
+        _original_commit = session.commit
+
+        async def _commit_and_reset_path():
+            await _original_commit()
+            await session.execute(
+                text(f'SET search_path TO "{schema}", public')
+            )
+
+        session.commit = _commit_and_reset_path  # type: ignore[assignment]
+
         try:
             yield session
         except Exception:

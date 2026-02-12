@@ -191,7 +191,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="mt-2 w-full h-[52px] rounded-xl bg-gradient-to-r from-[#263238] to-[#1e282d] text-white font-semibold text-[15px] shadow-lg shadow-gray-200 hover:to-black hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2"
+                            className="mt-2 w-full h-[52px] rounded-xl bg-gradient-to-r from-[#263238] to-[#1e282d] text-white font-semibold text-[15px] shadow-lg shadow-gray-200 hover:to-black hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 hover:cursor-pointer transition-all duration-200 flex items-center justify-center gap-2"
                         >
                             {loading ? (
                                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

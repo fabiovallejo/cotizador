@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     LayoutDashboard,
     FileText,
@@ -55,6 +55,9 @@ export function Sidebar() {
     const [isExpanded, setIsExpanded] = useState(false);
     const pathname = usePathname();
     const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => setMounted(true), []);
 
     const toggleSubmenu = (title: string) => {
         if (!isExpanded) {
@@ -187,13 +190,13 @@ export function Sidebar() {
                     className="w-full flex items-center h-10 px-2.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all duration-200 overflow-hidden"
                 >
                     <div className="shrink-0 w-5 h-5 flex items-center justify-center">
-                        {theme === "dark"
+                        {mounted && (theme === "dark"
                             ? <Sun className="w-[18px] h-[18px]" />
                             : <Moon className="w-[18px] h-[18px]" />
-                        }
+                        )}
                     </div>
                     <span className={`ml-3 font-medium text-[13px] whitespace-nowrap overflow-hidden transition-all duration-300 ${isExpanded ? "opacity-100 max-w-[150px]" : "opacity-0 max-w-0"}`}>
-                        {theme === "dark" ? "Modo Claro" : "Modo Oscuro"}
+                        {mounted ? (theme === "dark" ? "Modo Claro" : "Modo Oscuro") : "Tema"}
                     </span>
                 </button>
 
@@ -228,7 +231,7 @@ export function Sidebar() {
 
                     <button
                         onClick={logout}
-                        className={`ml-auto p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all duration-200 ${isExpanded ? "opacity-100" : "opacity-0 w-0 hidden"}`}
+                        className={`ml-auto p-1.5 hover:cursor-pointer rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all duration-200 ${isExpanded ? "opacity-100" : "opacity-0 w-0 hidden"}`}
                         title="Cerrar sesión"
                     >
                         <LogOut className="w-4 h-4" />
