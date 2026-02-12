@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EditModal, type FieldConfig } from "@/components/ui/EditModal";
-import { listarClientes, actualizarCliente, crearCliente } from "@/services/clientes.service";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { listarClientes, actualizarCliente, crearCliente, eliminarCliente } from "@/services/clientes.service";
 import type { Cliente } from "@/types/clientes";
 import { Plus, Pencil, Trash2, Mail, Phone } from "lucide-react";
 import { toast } from "sonner";
@@ -41,6 +42,7 @@ export default function ClientesPage() {
     const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [deletingCliente, setDeletingCliente] = useState<Cliente | null>(null);
 
     useEffect(() => {
         const fetchClientes = async () => {
@@ -85,6 +87,19 @@ export default function ClientesPage() {
         } catch (error) {
             console.error("Error creating cliente:", error);
             toast.error("Error al crear el cliente");
+            throw error;
+        }
+    };
+
+    const handleEliminarCliente = async () => {
+        if (!deletingCliente) return;
+        try {
+            await eliminarCliente(deletingCliente.id);
+            setClientes((prev) => prev.filter((c) => c.id !== deletingCliente.id));
+            toast.success("Cliente eliminado exitosamente");
+        } catch (error) {
+            console.error("Error deleting cliente:", error);
+            toast.error("Error al eliminar el cliente");
             throw error;
         }
     };
@@ -161,7 +176,10 @@ export default function ClientesPage() {
                     >
                         <Pencil className="h-4 w-4" />
                     </button>
-                    <button className="p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setDeletingCliente(cliente); }}
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
                         <Trash2 className="h-4 w-4" />
                     </button>
                 </div>
@@ -226,6 +244,17 @@ export default function ClientesPage() {
                 defaultValues={{ tipo_documento: "RUC", estado: "activo", es_cliente_frecuente: false } as Partial<Cliente>}
                 onSave={handleCrearNuevoCliente}
                 submitLabel="Registrar Cliente"
+            />
+
+            {/* Delete Confirm */}
+            <ConfirmDialog
+                open={!!deletingCliente}
+                onClose={() => setDeletingCliente(null)}
+                onConfirm={handleEliminarCliente}
+                variant="destructive"
+                title="Eliminar Cliente"
+                description={`¿Estás seguro de que deseas eliminar a "${deletingCliente?.razon_social}"? Esta acción no se puede deshacer.`}
+                confirmLabel="Sí, eliminar"
             />
         </div>
     );
