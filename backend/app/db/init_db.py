@@ -153,6 +153,30 @@ def crear_bd_completa():
             # Índices para configuracion_empresa
             connection.execute(text("CREATE INDEX IF NOT EXISTS idx_configuracion_empresa_empresa_id ON public.configuracion_empresa(empresa_id)"))
 
+            # Tabla: cuentas_bancarias
+            connection.execute(text("""
+                CREATE TABLE IF NOT EXISTS public.cuentas_bancarias (
+                    id SERIAL PRIMARY KEY,
+                    empresa_id INTEGER NOT NULL REFERENCES public.empresas(id) ON DELETE CASCADE,
+                    
+                    nombre_banco VARCHAR(100) NOT NULL,
+                    numero_cuenta VARCHAR(50) NOT NULL,
+                    cci VARCHAR(25),
+                    moneda VARCHAR(3) NOT NULL DEFAULT 'PEN',
+                    tipo_cuenta VARCHAR(20) NOT NULL DEFAULT 'corriente',
+                    titular VARCHAR(255) NOT NULL,
+                    
+                    activo BOOLEAN DEFAULT TRUE,
+                    
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+                )
+            """))
+            
+            # Índices para cuentas_bancarias
+            connection.execute(text("CREATE INDEX IF NOT EXISTS idx_cuentas_bancarias_empresa_id ON public.cuentas_bancarias(empresa_id)"))
+            connection.execute(text("CREATE INDEX IF NOT EXISTS idx_cuentas_bancarias_moneda ON public.cuentas_bancarias(moneda)"))
+
            
             # Tabla: password_reset_tokens
             connection.execute(text("""
@@ -257,10 +281,22 @@ def crear_bd_completa():
                     convertida_a_factura_id INTEGER,
                     notas_internas VARCHAR(1000),
                     terminos_condiciones VARCHAR(2000),
+                    forma_pago VARCHAR(50),
+                    lugar_entrega VARCHAR(500),
+                    tiempo_entrega VARCHAR(200),
                     deleted_at TIMESTAMP,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
                 )
+            """))
+
+            # Migración: agregar columnas comerciales si no existen
+            connection.execute(text("""
+                DO $$ BEGIN
+                    ALTER TABLE empresa_1.cotizaciones ADD COLUMN IF NOT EXISTS forma_pago VARCHAR(50);
+                    ALTER TABLE empresa_1.cotizaciones ADD COLUMN IF NOT EXISTS lugar_entrega VARCHAR(500);
+                    ALTER TABLE empresa_1.cotizaciones ADD COLUMN IF NOT EXISTS tiempo_entrega VARCHAR(200);
+                END $$;
             """))
             
             connection.execute(text("CREATE INDEX IF NOT EXISTS idx_cotizaciones_numero ON empresa_1.cotizaciones(numero_cotizacion)"))
@@ -459,7 +495,10 @@ def crear_bd_completa():
             print("\nSchema Public (Compartido):")
             print("  ├─ empresas")
             print("  ├─ usuarios")
-            print("  └─ audit_global")
+            print("  ├─ audit_global")
+            print("  ├─ configuracion_empresa")
+            print("  ├─ cuentas_bancarias")
+            print("  └─ password_reset_tokens")
             print("\nSchema empresa_1 (Ejemplo de Tenant):")
             print("  ├─ productos")
             print("  ├─ clientes")

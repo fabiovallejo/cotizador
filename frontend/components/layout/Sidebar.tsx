@@ -202,7 +202,7 @@ export function Sidebar() {
 
                 {/* Config Wrapper */}
                 {[
-                    { title: 'Configuración', icon: Settings, href: '/configuracion' },
+                    { title: 'Configuración', icon: Settings, href: '/dashboard/configuracion' },
                 ].map((action) => (
                     <Link
                         key={action.title}

@@ -78,6 +78,9 @@ export default function EditarCotizacionPage({
     const [vigenciaDias, setVigenciaDias] = useState(30);
     const [notasInternas, setNotasInternas] = useState("");
     const [terminosCondiciones, setTerminosCondiciones] = useState("");
+    const [formaPago, setFormaPago] = useState("");
+    const [lugarEntrega, setLugarEntrega] = useState("");
+    const [tiempoEntrega, setTiempoEntrega] = useState("");
 
     /* ── Cart ── */
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -121,6 +124,9 @@ export default function EditarCotizacionPage({
                 setTerminosCondiciones(
                     cotData.terminos_condiciones ?? ""
                 );
+                setFormaPago(cotData.forma_pago ?? "");
+                setLugarEntrega(cotData.lugar_entrega ?? "");
+                setTiempoEntrega(cotData.tiempo_entrega ?? "");
 
                 // Pre‐fill cart from items
                 const productosMap = new Map(
@@ -281,6 +287,9 @@ export default function EditarCotizacionPage({
                 vigencia_dias: vigenciaDias,
                 notas_internas: notasInternas || undefined,
                 terminos_condiciones: terminosCondiciones || undefined,
+                forma_pago: formaPago || undefined,
+                lugar_entrega: lugarEntrega || undefined,
+                tiempo_entrega: tiempoEntrega || undefined,
                 items: cart.map((ci) => ({
                     producto_id: ci.producto.id,
                     cantidad: ci.cantidad,
@@ -748,6 +757,51 @@ export default function EditarCotizacionPage({
                         rows={3}
                         placeholder="Términos visibles para el cliente..."
                         className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all resize-none"
+                    />
+                </div>
+            </div>
+
+            {/* ── Commercial conditions ── */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Forma de Pago
+                    </label>
+                    <select
+                        value={formaPago}
+                        onChange={(e) => setFormaPago(e.target.value)}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+                    >
+                        <option value="">Seleccionar...</option>
+                        <option className="dark:bg-gray-800" value="contado">Contado</option>
+                        <option className="dark:bg-gray-800" value="credito_15">Crédito 15 días</option>
+                        <option className="dark:bg-gray-800" value="credito_30">Crédito 30 días</option>
+                        <option className="dark:bg-gray-800" value="credito_60">Crédito 60 días</option>
+                        <option className="dark:bg-gray-800" value="credito_90">Crédito 90 días</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Tiempo de Entrega
+                    </label>
+                    <input
+                        type="text"
+                        value={tiempoEntrega}
+                        onChange={(e) => setTiempoEntrega(e.target.value)}
+                        placeholder="Ej: 3 días hábiles"
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                        Lugar de Entrega
+                    </label>
+                    <input
+                        type="text"
+                        value={lugarEntrega}
+                        onChange={(e) => setLugarEntrega(e.target.value)}
+                        placeholder="Ej: Almacén del cliente"
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-2.5 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
                     />
                 </div>
             </div>

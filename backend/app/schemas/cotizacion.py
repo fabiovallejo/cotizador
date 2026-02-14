@@ -15,6 +15,9 @@ class CreateCotizacionRequest(BaseModel):
     vigencia_dias: int = Field(default=30, ge=1, le=365)
     notas_internas: Optional[str] = None
     terminos_condiciones: Optional[str] = None
+    forma_pago: Optional[str] = None
+    lugar_entrega: Optional[str] = None
+    tiempo_entrega: Optional[str] = None
     items: List[CreateItemCotizacionRequest]
 
 
@@ -34,6 +37,9 @@ class CotizacionResponse(BaseModel):
     fecha_vencimiento: Optional[date] = None
     notas_internas: Optional[str] = None
     terminos_condiciones: Optional[str] = None
+    forma_pago: Optional[str] = None
+    lugar_entrega: Optional[str] = None
+    tiempo_entrega: Optional[str] = None
     convertida_a_factura_id: Optional[int] = None
     created_at: Optional[datetime] = None
     

@@ -192,6 +192,11 @@ class Cotizacion(Base, AuditMixin, SoftDeleteMixin):
     notas_internas = Column(String(1000))
     terminos_condiciones = Column(String(2000))
     
+    # ===== CONDICIONES COMERCIALES =====
+    forma_pago = Column(String(50))          # contado | credito_15 | credito_30 | credito_60 | credito_90
+    lugar_entrega = Column(String(500))
+    tiempo_entrega = Column(String(200))
+    
     # ===== SOFT DELETE =====
     deleted_at = Column(DateTime)
     

@@ -53,7 +53,9 @@ class PDFGenerator:
         cotizacion,
         cliente,
         items,
-        empresa
+        empresa,
+        vendedor=None,
+        cuentas_bancarias=None,
     ) -> BytesIO:
         """Genera PDF de cotización."""
         template = self.env.get_template("cotizaciones/cotizacion.html")
@@ -61,7 +63,9 @@ class PDFGenerator:
             cotizacion=cotizacion,
             cliente=cliente,
             items=items,
-            empresa=empresa
+            empresa=empresa,
+            vendedor=vendedor,
+            cuentas_bancarias=cuentas_bancarias or [],
         )
         
         buffer = BytesIO()

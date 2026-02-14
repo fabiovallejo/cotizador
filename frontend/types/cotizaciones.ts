@@ -14,6 +14,9 @@ export interface Cotizacion {
     fecha_vencimiento?: string;
     notas_internas?: string;
     terminos_condiciones?: string;
+    forma_pago?: string;
+    lugar_entrega?: string;
+    tiempo_entrega?: string;
     convertida_a_factura_id?: number;
     created_at?: string;
 }
@@ -43,5 +46,8 @@ export interface CreateCotizacionRequest {
     vigencia_dias: number;
     notas_internas?: string;
     terminos_condiciones?: string;
+    forma_pago?: string;
+    lugar_entrega?: string;
+    tiempo_entrega?: string;
     items: CreateItemCotizacionRequest[];
 }

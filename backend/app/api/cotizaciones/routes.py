@@ -21,7 +21,7 @@ from app.schemas.cotizacion import (
     ConvertirAFacturaResponse
 )
 from app.models.tenant import Cotizacion, ItemCotizacion, Cliente
-from app.models.shared import Empresa
+from app.models.shared import Empresa, Usuario, CuentaBancaria
 from app.services.pdf.pdf_generator import pdf_generator
 
 router = APIRouter(prefix="/api/cotizaciones", tags=["Cotizaciones"])
@@ -150,15 +150,34 @@ async def descargar_pdf_cotizacion(
     )
     empresa = empresa.scalar_one()
     
-    # 5. Generar PDF
+    # 5. Obtener vendedor (usuario que creó la cotización)
+    vendedor = None
+    if cotizacion.usuario_id:
+        vendedor_result = await db.execute(
+            select(Usuario).where(Usuario.id == cotizacion.usuario_id)
+        )
+        vendedor = vendedor_result.scalar_one_or_none()
+    
+    # 6. Obtener cuentas bancarias activas de la empresa
+    cuentas_result = await db.execute(
+        select(CuentaBancaria).where(
+            CuentaBancaria.empresa_id == current_user.empresa_id,
+            CuentaBancaria.activo == True,
+        )
+    )
+    cuentas_bancarias = cuentas_result.scalars().all()
+    
+    # 7. Generar PDF
     pdf_buffer = await pdf_generator.generar_pdf_cotizacion(
         cotizacion=cotizacion,
         cliente=cliente,
         items=items,
-        empresa=empresa
+        empresa=empresa,
+        vendedor=vendedor,
+        cuentas_bancarias=cuentas_bancarias,
     )
     
-    # 6. Retornar
+    # 8. Retornar
     return StreamingResponse(
         iter([pdf_buffer.getvalue()]),
         media_type="application/pdf",

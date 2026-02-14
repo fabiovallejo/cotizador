@@ -88,6 +88,7 @@ class Empresa(Base, AuditMixin, SoftDeleteMixin):
     
     # ===== RELACIONES =====
     usuarios = relationship("Usuario", back_populates="empresa", cascade="all, delete-orphan")
+    cuentas_bancarias = relationship("CuentaBancaria", back_populates="empresa", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Empresa(ruc={self.ruc}, schema={self.db_schema})>"
@@ -221,6 +222,51 @@ class ConfiguracionEmpresa(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ============================================================================
+# TABLA: CUENTAS_BANCARIAS (Cuentas bancarias de la empresa)
+# ============================================================================
+
+class CuentaBancaria(Base):
+    """
+    Cuentas bancarias de la empresa.
+    
+    Una empresa puede tener múltiples cuentas en distintos bancos,
+    en soles (PEN) y dólares (USD). Se muestran en cotizaciones y facturas.
+    """
+    __tablename__ = "cuentas_bancarias"
+    __table_args__ = (
+        Index("idx_cuentas_bancarias_empresa_id", "empresa_id"),
+        Index("idx_cuentas_bancarias_moneda", "moneda"),
+        {"schema": "public"},
+    )
+
+    id = Column(Integer, primary_key=True)
+    
+    # ===== EMPRESA =====
+    empresa_id = Column(Integer, ForeignKey("public.empresas.id"), nullable=False)
+    
+    # ===== DATOS BANCARIOS =====
+    nombre_banco = Column(String(100), nullable=False)  # BCP, BBVA, Interbank, Scotiabank, etc.
+    numero_cuenta = Column(String(50), nullable=False)
+    cci = Column(String(25))  # Código de Cuenta Interbancario (20 dígitos)
+    moneda = Column(String(3), nullable=False, default="PEN")  # PEN | USD
+    tipo_cuenta = Column(String(20), nullable=False, default="corriente")  # corriente | ahorros
+    titular = Column(String(255), nullable=False)  # Nombre del titular
+    
+    # ===== ESTADO =====
+    activo = Column(Boolean, default=True)
+    
+    # ===== TIMESTAMPS =====
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # ===== RELACIONES =====
+    empresa = relationship("Empresa", back_populates="cuentas_bancarias")
+    
+    def __repr__(self):
+        return f"<CuentaBancaria(banco={self.nombre_banco}, moneda={self.moneda}, empresa_id={self.empresa_id})>"
 
 
 # ============================================================================

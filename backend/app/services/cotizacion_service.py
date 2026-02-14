@@ -169,6 +169,9 @@ async def crear_cotizacion(
         fecha_vencimiento=fecha_vencimiento,
         notas_internas=data.notas_internas,
         terminos_condiciones=data.terminos_condiciones,
+        forma_pago=data.forma_pago,
+        lugar_entrega=data.lugar_entrega,
+        tiempo_entrega=data.tiempo_entrega,
     )
     
     db.add(nueva_cotizacion)
@@ -407,6 +410,9 @@ async def editar_cotizacion(
     cotizacion.fecha_vencimiento = datetime.now().date() + timedelta(days=data.vigencia_dias)
     cotizacion.notas_internas = data.notas_internas
     cotizacion.terminos_condiciones = data.terminos_condiciones
+    cotizacion.forma_pago = data.forma_pago
+    cotizacion.lugar_entrega = data.lugar_entrega
+    cotizacion.tiempo_entrega = data.tiempo_entrega
     cotizacion.subtotal = subtotal_cotizacion
     cotizacion.igv_total = igv_total_cotizacion
     cotizacion.total = total_cotizacion

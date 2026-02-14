@@ -1,5 +1,5 @@
 
-from app.models.shared import Empresa, Usuario, AuditGlobal
+from app.models.shared import Empresa, Usuario, AuditGlobal, CuentaBancaria
 from app.models.tenant import (
     Producto,
     Cliente,
@@ -24,6 +24,7 @@ __all__ = [
     "Empresa",
     "Usuario",
     "AuditGlobal",
+    "CuentaBancaria",
     
     # Tenant
     "Producto",
