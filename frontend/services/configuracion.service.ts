@@ -55,6 +55,21 @@ export async function actualizarConfigEmpresa(
     });
 }
 
+export async function subirLogo(file: File): Promise<{ logo_url: string }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiFetch<{ logo_url: string }>("/empresa/logo", {
+        method: "POST",
+        body: formData,
+    });
+}
+
+export async function eliminarLogo(): Promise<{ message: string }> {
+    return apiFetch<{ message: string }>("/empresa/logo", {
+        method: "DELETE",
+    });
+}
+
 // ============================================================================
 // CUENTAS BANCARIAS
 // ============================================================================

@@ -4,6 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from typing import Optional
+from pathlib import Path
+import base64
+import mimetypes
 from app.core.dependencies import get_current_user, get_tenant_db, CurrentUser
 from app.services.cotizacion_service import (
     crear_cotizacion, 
@@ -150,6 +153,31 @@ async def descargar_pdf_cotizacion(
     )
     empresa = empresa.scalar_one()
     
+    # 4b. Crear copia de empresa con logo como data URI base64 para WeasyPrint
+    #     (No mutar el objeto SQLAlchemy para evitar flush accidental)
+    from types import SimpleNamespace
+    empresa_pdf = SimpleNamespace(
+        razon_social=empresa.razon_social,
+        ruc=empresa.ruc,
+        direccion=empresa.direccion,
+        telefono=empresa.telefono,
+        email=empresa.email,
+        logo_url=None,
+    )
+    if empresa.logo_url:
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(empresa.logo_url)
+            rel_path = parsed.path.lstrip("/")
+            logo_path = Path(rel_path)
+            if logo_path.exists():
+                mime_type = mimetypes.guess_type(str(logo_path))[0] or "image/png"
+                logo_bytes = logo_path.read_bytes()
+                b64 = base64.b64encode(logo_bytes).decode("utf-8")
+                empresa_pdf.logo_url = f"data:{mime_type};base64,{b64}"
+        except Exception:
+            pass  # Si falla, el template muestra el placeholder
+    
     # 5. Obtener vendedor (usuario que creó la cotización)
     vendedor = None
     if cotizacion.usuario_id:
@@ -172,7 +200,7 @@ async def descargar_pdf_cotizacion(
         cotizacion=cotizacion,
         cliente=cliente,
         items=items,
-        empresa=empresa,
+        empresa=empresa_pdf,
         vendedor=vendedor,
         cuentas_bancarias=cuentas_bancarias,
     )

@@ -670,10 +670,12 @@ export default function NuevaCotizacionPage() {
                     >
                         <option value="">Seleccionar...</option>
                         <option className="dark:bg-gray-800" value="contado">Contado</option>
+                        <option className="dark:bg-gray-800" value="credito_7">Crédito 7 días</option>
                         <option className="dark:bg-gray-800" value="credito_15">Crédito 15 días</option>
                         <option className="dark:bg-gray-800" value="credito_30">Crédito 30 días</option>
                         <option className="dark:bg-gray-800" value="credito_60">Crédito 60 días</option>
                         <option className="dark:bg-gray-800" value="credito_90">Crédito 90 días</option>
+                        <option className="dark:bg-gray-800" value="50_orden_50_contra_entrega">50% orden 50% contra entrega</option>
                     </select>
                 </div>
                 <div>

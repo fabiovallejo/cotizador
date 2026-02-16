@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
     obtenerPerfil, actualizarPerfil, cambiarPassword,
     obtenerConfigEmpresa, actualizarConfigEmpresa,
+    subirLogo, eliminarLogo,
     listarCuentasBancarias, crearCuentaBancaria, actualizarCuentaBancaria, eliminarCuentaBancaria,
     listarUsuarios, crearUsuario, actualizarUsuario, eliminarUsuario,
     obtenerAuditLogs,
@@ -16,6 +17,7 @@ import type {
 import {
     User, Building2, Landmark, Users, ScrollText, Save, Plus, Pencil, Trash2,
     Eye, EyeOff, Loader2, CheckCircle2, XCircle, Shield, ChevronDown,
+    Upload, ImageIcon,
 } from "lucide-react";
 
 /* ── Roles config ── */
@@ -215,10 +217,16 @@ function TabEmpresa({ showToast, rol }: { showToast: (m: string, t?: "ok" | "err
     const [loading, setLoading] = useState(true);
     const canEditSeries = rol === "administrador" || rol === "contador";
 
+    // Logo state
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [dragOver, setDragOver] = useState(false);
+
     useEffect(() => {
         obtenerConfigEmpresa().then((c) => {
             setConfig(c);
             setForm({ serie_factura: c.serie_factura ?? "", serie_boleta: c.serie_boleta ?? "", serie_nc: c.serie_nc ?? "", serie_nd: c.serie_nd ?? "", logo_url: c.logo_url ?? "", telefono: c.telefono ?? "", email: c.email ?? "" });
+            setLogoUrl(c.logo_url ?? null);
         }).catch(() => showToast("Error cargando configuración", "err")).finally(() => setLoading(false));
     }, []);
 
@@ -231,6 +239,55 @@ function TabEmpresa({ showToast, rol }: { showToast: (m: string, t?: "ok" | "err
         } catch (e: any) { showToast(e.message, "err"); } finally { setSaving(false); }
     };
 
+    // ── Logo handlers ──
+    const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg"];
+    const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+
+    const validateAndUpload = async (file: File) => {
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            showToast("Solo se permiten archivos PNG o JPEG", "err");
+            return;
+        }
+        if (file.size > MAX_SIZE) {
+            showToast("El archivo excede 2 MB", "err");
+            return;
+        }
+        setUploadingLogo(true);
+        try {
+            const res = await subirLogo(file);
+            setLogoUrl(res.logo_url);
+            showToast("Logo actualizado correctamente");
+        } catch (e: any) {
+            showToast(e.message || "Error subiendo logo", "err");
+        } finally {
+            setUploadingLogo(false);
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) validateAndUpload(file);
+        e.target.value = "";
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setDragOver(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) validateAndUpload(file);
+    };
+
+    const handleDeleteLogo = async () => {
+        if (!confirm("¿Eliminar el logo de la empresa?")) return;
+        try {
+            await eliminarLogo();
+            setLogoUrl(null);
+            showToast("Logo eliminado");
+        } catch (e: any) {
+            showToast(e.message || "Error eliminando logo", "err");
+        }
+    };
+
     if (loading) return <div className="p-12 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>;
 
     const inputCls = "w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 outline-none transition disabled:opacity-50";
@@ -239,14 +296,62 @@ function TabEmpresa({ showToast, rol }: { showToast: (m: string, t?: "ok" | "err
         <div className="p-6 space-y-8">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Building2 className="w-5 h-5 text-[#FF7043]" /> Datos de Empresa</h2>
 
+            {/* ── Logo Section ── */}
+            <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Logo de la empresa</h3>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Este logo aparecerá en la esquina superior izquierda de tus cotizaciones y facturas en PDF.</p>
+
+                <div className="flex items-start gap-6">
+                    {/* Preview */}
+                    <div className="shrink-0 w-[200px] h-[80px] rounded-xl border-2 border-dashed border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 flex items-center justify-center overflow-hidden">
+                        {logoUrl ? (
+                            <img src={logoUrl} alt="Logo empresa" className="max-w-full max-h-full object-contain" />
+                        ) : (
+                            <ImageIcon className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                        )}
+                    </div>
+
+                    {/* Upload zone */}
+                    <div className="flex-1 space-y-3">
+                        <label
+                            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                            onDragLeave={() => setDragOver(false)}
+                            onDrop={handleDrop}
+                            className={`relative flex flex-col items-center justify-center gap-2 px-6 py-5 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 ${dragOver
+                                    ? "border-[#2E66F6] bg-blue-50/50 dark:bg-blue-900/10"
+                                    : "border-gray-200 dark:border-white/10 hover:border-[#2E66F6]/50 hover:bg-gray-50/50 dark:hover:bg-white/[0.02]"
+                                }`}
+                        >
+                            <input type="file" accept=".png,.jpg,.jpeg" onChange={handleFileChange} className="sr-only" />
+                            {uploadingLogo ? (
+                                <Loader2 className="w-6 h-6 animate-spin text-[#2E66F6]" />
+                            ) : (
+                                <Upload className="w-6 h-6 text-gray-400" />
+                            )}
+                            <div className="text-center">
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    {uploadingLogo ? "Subiendo..." : "Arrastra tu logo aquí o haz clic para seleccionar"}
+                                </p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                    PNG o JPEG · Máx 2 MB · Recomendado: 400×150 px
+                                </p>
+                            </div>
+                        </label>
+
+                        {logoUrl && (
+                            <button onClick={handleDeleteLogo}
+                                className="flex items-center gap-1.5 text-xs font-medium text-red-500 hover:text-red-600 transition">
+                                <Trash2 className="w-3.5 h-3.5" /> Eliminar logo
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+
             {/* Contact info */}
             <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Información de contacto</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Logo URL</label>
-                        <input value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} className={inputCls} placeholder="https://..." />
-                    </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Teléfono</label>
                         <input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} className={inputCls} placeholder="01-234-5678" />
@@ -257,21 +362,6 @@ function TabEmpresa({ showToast, rol }: { showToast: (m: string, t?: "ok" | "err
                     </div>
                 </div>
             </div>
-
-            {/* Series */}
-            {canEditSeries && (
-                <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Series de comprobantes</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {(["serie_factura", "serie_boleta", "serie_nc", "serie_nd"] as const).map((k) => (
-                            <div key={k}>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5 capitalize">{k.replace("serie_", "Serie ")}</label>
-                                <input value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} className={inputCls} maxLength={4} />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             <button onClick={handleSave} disabled={saving}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2E66F6] hover:bg-[#2559d4] text-white text-sm font-medium transition disabled:opacity-50">

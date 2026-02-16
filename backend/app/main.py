@@ -1,7 +1,9 @@
 from fastapi import FastAPI 
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import logging 
+import os
 
 from app.core.config import settings 
 
@@ -34,6 +36,10 @@ app.add_middleware(
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "environment": settings.environment}
+
+# Archivos estáticos (logos, etc.)
+os.makedirs("uploads/logos", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 #Rutas
 from app.api.auth.routes import router as auth_router

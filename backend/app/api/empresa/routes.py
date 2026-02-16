@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_current_user, get_tenant_db, CurrentUser
 from app.services.empresa_service import obtener_configuracion, actualizar_configuracion
+from app.services.logo_service import subir_logo, eliminar_logo
 from app.services.usuario_service import (
     crear_usuario, obtener_usuario, actualizar_usuario, 
     eliminar_usuario, listar_usuarios,
@@ -67,6 +68,49 @@ async def update_configuracion(
     """
     config = await actualizar_configuracion(db, current_user.empresa_id, data)
     return config
+
+
+# ============================================================================
+# LOGO DE EMPRESA
+# ============================================================================
+
+@router.post(
+    "/logo",
+    summary="Subir logo de empresa",
+    description="Sube o reemplaza el logo de la empresa. Formatos: PNG, JPEG. Máx: 2MB. Dimensiones: 200-800px ancho, 80-400px alto."
+)
+async def post_logo(
+    request: Request,
+    file: UploadFile = File(..., description="Archivo de imagen (PNG o JPEG)"),
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Sube o reemplaza el logo de la empresa.
+    
+    Validaciones:
+    - Formato: PNG o JPEG
+    - Tamaño: ≤ 2 MB
+    - Dimensiones: ancho 200–800 px, alto 80–400 px
+    - Dimensiones recomendadas: 400×150 px
+    """
+    base_url = str(request.base_url).rstrip("/")
+    logo_url = await subir_logo(db, current_user.empresa_id, file, base_url)
+    return {"logo_url": logo_url}
+
+
+@router.delete(
+    "/logo",
+    summary="Eliminar logo de empresa",
+    description="Elimina el logo de la empresa."
+)
+async def delete_logo(
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Elimina el logo de la empresa del sistema."""
+    await eliminar_logo(db, current_user.empresa_id)
+    return {"message": "Logo eliminado correctamente"}
 
 
 @router.post("/usuarios", response_model=usuarioResponse)
