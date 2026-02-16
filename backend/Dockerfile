@@ -27,6 +27,7 @@ RUN echo '#!/bin/bash\n\
     uvicorn app.main:app --host 0.0.0.0 --port 8000\n\
     ' > /start.sh && chmod +x /start.sh
 
+RUN mkdir -p /app/uploads/logos
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 

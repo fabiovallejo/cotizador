@@ -9,7 +9,7 @@ Endpoints para generar reportes agregados:
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, case, desc, and_
+from sqlalchemy import select, func, case, desc, and_, cast, Date
 from typing import Optional
 from datetime import date, datetime, timedelta
 
@@ -376,4 +376,305 @@ async def reporte_clientes(
         "inactivos": inactivos_count,
         "clientes": clientes,
         "alertas": alertas,
+    }
+
+
+# ============================================================================
+# REPORTE 4: DASHBOARD EJECUTIVO
+# ============================================================================
+
+@router.get(
+    "/dashboard",
+    summary="Dashboard ejecutivo",
+    description="Vista consolidada con KPIs, alertas, gráficos y rankings."
+)
+async def dashboard(
+    periodo: int = Query(30, description="Período en días (7, 30, 90)"),
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    ahora = datetime.utcnow()
+    inicio_actual = ahora - timedelta(days=periodo)
+    inicio_anterior = inicio_actual - timedelta(days=periodo)
+    umbral_pendiente = ahora - timedelta(days=7)
+    umbral_inactivo = ahora - timedelta(days=30)
+
+    # =========================================================================
+    # QUERY 1: KPIs — período actual vs anterior
+    # =========================================================================
+    async def _kpis_periodo(desde: datetime, hasta: datetime):
+        q = select(
+            func.count(Cotizacion.id).label("total"),
+            func.coalesce(func.sum(Cotizacion.total), 0).label("monto"),
+            func.count(case((Cotizacion.estado.in_(["aceptada", "convertida"]), 1))).label("aceptadas"),
+            func.count(case((Cotizacion.estado == "rechazada", 1))).label("rechazadas"),
+            func.count(case((
+                and_(
+                    Cotizacion.estado.in_(["borrador", "enviada"]),
+                    Cotizacion.created_at <= umbral_pendiente,
+                ), 1
+            ))).label("pendientes"),
+        ).where(
+            Cotizacion.created_at >= desde,
+            Cotizacion.created_at <= hasta,
+            Cotizacion.deleted_at.is_(None),
+        )
+        r = await db.execute(q)
+        return r.one()
+
+    actual = await _kpis_periodo(inicio_actual, ahora)
+    anterior = await _kpis_periodo(inicio_anterior, inicio_actual)
+
+    total_actual = actual.total or 0
+    total_anterior = anterior.total or 0
+    monto_actual = float(actual.monto or 0)
+    monto_anterior = float(anterior.monto or 0)
+    aceptadas_actual = actual.aceptadas or 0
+    tasa_conversion = round((aceptadas_actual / total_actual * 100) if total_actual > 0 else 0, 1)
+    tasa_anterior = round(((anterior.aceptadas or 0) / total_anterior * 100) if total_anterior > 0 else 0, 1)
+    pendientes = actual.pendientes or 0
+
+    # Clientes inactivos count (globalmente)
+    inact_q = select(func.count(func.distinct(Cotizacion.cliente_id))).where(
+        Cotizacion.deleted_at.is_(None),
+    ).having(
+        func.max(Cotizacion.created_at) < umbral_inactivo
+    ).group_by(Cotizacion.cliente_id)
+    inact_sub = await db.execute(select(func.count()).select_from(inact_q.subquery()))
+    clientes_inactivos_count = inact_sub.scalar() or 0
+
+    def _variacion(actual_v, anterior_v):
+        if anterior_v == 0:
+            return 100.0 if actual_v > 0 else 0.0
+        return round((actual_v - anterior_v) / anterior_v * 100, 1)
+
+    kpis = {
+        "cotizaciones": {
+            "valor": total_actual,
+            "variacion": _variacion(total_actual, total_anterior),
+        },
+        "tasa_conversion": {
+            "valor": tasa_conversion,
+            "aceptadas": aceptadas_actual,
+            "total": total_actual,
+            "variacion": round(tasa_conversion - tasa_anterior, 1),
+        },
+        "ingresos": {
+            "valor": round(monto_actual, 2),
+            "variacion": _variacion(monto_actual, monto_anterior),
+            "ticket_promedio": round(monto_actual / total_actual if total_actual > 0 else 0, 2),
+        },
+        "alertas": {
+            "pendientes": pendientes,
+            "inactivos": clientes_inactivos_count,
+        },
+    }
+
+    # =========================================================================
+    # QUERY 2: Cotizaciones pendientes (detalle, top 5)
+    # =========================================================================
+    pend_q = (
+        select(Cotizacion, Cliente.razon_social)
+        .join(Cliente, Cotizacion.cliente_id == Cliente.id)
+        .where(
+            Cotizacion.estado.in_(["borrador", "enviada"]),
+            Cotizacion.created_at <= umbral_pendiente,
+            Cotizacion.deleted_at.is_(None),
+        )
+        .order_by(Cotizacion.created_at.asc())
+        .limit(5)
+    )
+    pend_result = await db.execute(pend_q)
+    pend_rows = pend_result.all()
+
+    # Fetch vendedor names for pendientes
+    pend_vendedor_ids = list({r[0].usuario_id for r in pend_rows if r[0].usuario_id})
+    pend_vendedores = {}
+    if pend_vendedor_ids:
+        v_r = await db.execute(
+            select(Usuario.id, Usuario.nombre, Usuario.apellido)
+            .where(Usuario.id.in_(pend_vendedor_ids))
+        )
+        for v in v_r.all():
+            pend_vendedores[v.id] = f"{v.nombre} {v.apellido or ''}".strip()
+
+    cotizaciones_pendientes = []
+    for cot, cliente_nombre in pend_rows:
+        dias = (ahora - cot.created_at).days if cot.created_at else 0
+        cotizaciones_pendientes.append({
+            "id": cot.id,
+            "numero": cot.numero_cotizacion,
+            "cliente": cliente_nombre,
+            "monto": float(cot.total or 0),
+            "dias": dias,
+            "fecha": cot.created_at.strftime("%Y-%m-%d") if cot.created_at else "",
+            "vendedor": pend_vendedores.get(cot.usuario_id, "—"),
+        })
+
+    # =========================================================================
+    # QUERY 3: Serie diaria (para gráfico)
+    # =========================================================================
+    serie_q = (
+        select(
+            cast(Cotizacion.created_at, Date).label("dia"),
+            func.count(Cotizacion.id).label("total"),
+            func.count(case((Cotizacion.estado.in_(["aceptada", "convertida"]), 1))).label("aceptadas"),
+        )
+        .where(
+            Cotizacion.created_at >= inicio_actual,
+            Cotizacion.created_at <= ahora,
+            Cotizacion.deleted_at.is_(None),
+        )
+        .group_by(cast(Cotizacion.created_at, Date))
+        .order_by(cast(Cotizacion.created_at, Date))
+    )
+    serie_result = await db.execute(serie_q)
+    serie_diaria = [
+        {
+            "dia": str(r.dia),
+            "total": r.total or 0,
+            "aceptadas": r.aceptadas or 0,
+        }
+        for r in serie_result.all()
+    ]
+
+    # =========================================================================
+    # QUERY 4: Top 5 productos + productos problemáticos
+    # =========================================================================
+    prod_q = (
+        select(
+            Producto.id,
+            Producto.codigo,
+            Producto.nombre,
+            func.coalesce(func.sum(ItemCotizacion.cantidad), 0).label("cantidad"),
+            func.coalesce(func.sum(ItemCotizacion.total), 0).label("ingresos"),
+            func.count(func.distinct(Cotizacion.id)).label("cotizaciones_total"),
+            func.count(func.distinct(case(
+                (Cotizacion.estado.in_(["aceptada", "convertida"]), Cotizacion.id),
+            ))).label("cotizaciones_cerradas"),
+            func.coalesce(func.sum(case(
+                (Cotizacion.estado.in_(["rechazada", "borrador", "enviada"]), ItemCotizacion.total),
+                else_=0
+            )), 0).label("monto_perdido"),
+        )
+        .join(ItemCotizacion, Producto.id == ItemCotizacion.producto_id)
+        .join(Cotizacion, ItemCotizacion.cotizacion_id == Cotizacion.id)
+        .where(
+            Cotizacion.created_at >= inicio_actual,
+            Cotizacion.created_at <= ahora,
+            Cotizacion.deleted_at.is_(None),
+        )
+        .group_by(Producto.id, Producto.codigo, Producto.nombre)
+        .order_by(desc("ingresos"))
+    )
+    prod_result = await db.execute(prod_q)
+    all_products = []
+    for r in prod_result.all():
+        total_cot = r.cotizaciones_total or 0
+        cerradas = r.cotizaciones_cerradas or 0
+        tasa = round((cerradas / total_cot * 100) if total_cot > 0 else 0, 1)
+        all_products.append({
+            "id": r.id,
+            "codigo": r.codigo,
+            "nombre": r.nombre,
+            "cantidad": round(float(r.cantidad or 0), 2),
+            "ingresos": round(float(r.ingresos or 0), 2),
+            "tasa_conversion": tasa,
+            "cotizaciones_total": total_cot,
+            "cotizaciones_cerradas": cerradas,
+            "monto_perdido": round(float(r.monto_perdido or 0), 2),
+        })
+
+    top_productos = all_products[:5]
+    productos_problematicos = sorted(
+        [p for p in all_products if p["tasa_conversion"] < 50 and p["cotizaciones_total"] >= 2],
+        key=lambda x: x["monto_perdido"],
+        reverse=True
+    )[:5]
+
+    # =========================================================================
+    # QUERY 5: Clientes inactivos (detalle, top 5)
+    # =========================================================================
+    inact_detail_q = (
+        select(
+            Cliente.id,
+            Cliente.razon_social,
+            func.max(Cotizacion.created_at).label("ultima"),
+            func.coalesce(func.sum(Cotizacion.total), 0).label("monto_historico"),
+        )
+        .join(Cotizacion, Cliente.id == Cotizacion.cliente_id)
+        .where(Cotizacion.deleted_at.is_(None))
+        .group_by(Cliente.id, Cliente.razon_social)
+        .having(func.max(Cotizacion.created_at) < umbral_inactivo)
+        .order_by(func.max(Cotizacion.created_at).asc())
+        .limit(5)
+    )
+    inact_detail_result = await db.execute(inact_detail_q)
+    clientes_inactivos = []
+    for r in inact_detail_result.all():
+        dias = (ahora - r.ultima).days if r.ultima else 0
+        clientes_inactivos.append({
+            "id": r.id,
+            "razon_social": r.razon_social,
+            "ultima_cotizacion": r.ultima.strftime("%Y-%m-%d") if r.ultima else "",
+            "dias": dias,
+            "monto_historico": round(float(r.monto_historico or 0), 2),
+        })
+
+    # =========================================================================
+    # QUERY 6: Top vendedores (ranking por conversión)
+    # =========================================================================
+    vend_q = (
+        select(
+            Cotizacion.usuario_id,
+            func.count(Cotizacion.id).label("total"),
+            func.count(case((Cotizacion.estado.in_(["aceptada", "convertida"]), 1))).label("cerradas"),
+            func.coalesce(func.sum(Cotizacion.total), 0).label("monto"),
+        )
+        .where(
+            Cotizacion.created_at >= inicio_actual,
+            Cotizacion.created_at <= ahora,
+            Cotizacion.deleted_at.is_(None),
+        )
+        .group_by(Cotizacion.usuario_id)
+        .order_by(desc("cerradas"))
+        .limit(5)
+    )
+    vend_result = await db.execute(vend_q)
+    vend_rows = vend_result.all()
+
+    # Fetch vendedor names
+    all_vend_ids = [r.usuario_id for r in vend_rows if r.usuario_id]
+    vend_names = {}
+    if all_vend_ids:
+        vn_r = await db.execute(
+            select(Usuario.id, Usuario.nombre, Usuario.apellido)
+            .where(Usuario.id.in_(all_vend_ids))
+        )
+        for v in vn_r.all():
+            vend_names[v.id] = f"{v.nombre} {v.apellido or ''}".strip()
+
+    top_vendedores = []
+    for r in vend_rows:
+        total_v = r.total or 0
+        cerradas_v = r.cerradas or 0
+        tasa_v = round((cerradas_v / total_v * 100) if total_v > 0 else 0, 1)
+        top_vendedores.append({
+            "id": r.usuario_id,
+            "nombre": vend_names.get(r.usuario_id, "—"),
+            "cotizaciones": total_v,
+            "cerradas": cerradas_v,
+            "tasa_conversion": tasa_v,
+            "monto": round(float(r.monto or 0), 2),
+        })
+
+    return {
+        "periodo_dias": periodo,
+        "kpis": kpis,
+        "cotizaciones_pendientes": cotizaciones_pendientes,
+        "serie_diaria": serie_diaria,
+        "top_productos": top_productos,
+        "productos_problematicos": productos_problematicos,
+        "clientes_inactivos": clientes_inactivos,
+        "top_vendedores": top_vendedores,
     }

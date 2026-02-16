@@ -32,6 +32,8 @@ services:
       - facturador-network
     env_file: .env
     command: /start.sh
+    volumes:
+      - uploads_data:/app/uploads
 
 networks:
   facturador-network:
@@ -39,3 +41,4 @@ networks:
 
 volumes:
   postgres_data:
+  uploads_data:
