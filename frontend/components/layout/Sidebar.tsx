@@ -20,6 +20,7 @@ import {
     CircleHelp,
     Files,
     Briefcase,
+    BarChart3,
 } from "lucide-react";
 
 const MENU_ITEMS = [
@@ -45,6 +46,16 @@ const MENU_ITEMS = [
         title: "Productos",
         href: "/dashboard/productos",
         icon: Package,
+    },
+    {
+        title: "Reportes",
+        icon: BarChart3,
+        href: "/dashboard/reportes",
+        submenu: [
+            { title: "Cotizaciones", href: "/dashboard/reportes/cotizaciones", icon: BarChart3 },
+            { title: "Productos Top", href: "/dashboard/reportes/productos-top", icon: BarChart3 },
+            { title: "Clientes", href: "/dashboard/reportes/clientes", icon: BarChart3 },
+        ],
     },
 ];
 
@@ -158,18 +169,25 @@ export function Sidebar() {
                             )}
 
                             {/* --- Submenu Items --- */}
-                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${hasSubmenu && isExpanded && isSubmenuOpen ? "max-h-40 opacity-100 mt-1" : "max-h-0 opacity-0"}`}>
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${hasSubmenu && isExpanded && isSubmenuOpen ? "max-h-60 opacity-100 mt-1" : "max-h-0 opacity-0"}`}>
                                 <div className="space-y-0.5 py-1">
-                                    {item.submenu?.map((sub) => (
-                                        <Link
-                                            key={sub.title}
-                                            href={sub.href}
-                                            className="flex items-center gap-3 pl-10 pr-3 py-2 rounded-lg text-[13px] text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-200"
-                                        >
-                                            <div className="w-1 h-1 rounded-full bg-gray-300 dark:bg-white/20" />
-                                            <span>{sub.title}</span>
-                                        </Link>
-                                    ))}
+                                    {item.submenu?.map((sub) => {
+                                        const SubIcon = sub.icon;
+                                        const isSubActive = pathname === sub.href;
+                                        return (
+                                            <Link
+                                                key={sub.title}
+                                                href={sub.href}
+                                                className={`flex items-center gap-2.5 pl-9 pr-3 py-2 rounded-lg text-[13px] transition-all duration-200 ${isSubActive
+                                                        ? "text-[#2E66F6] dark:text-[#FF7043] font-semibold bg-blue-50/50 dark:bg-white/5"
+                                                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5"
+                                                    }`}
+                                            >
+                                                <SubIcon className={`w-4 h-4 shrink-0 ${isSubActive ? "text-[#2E66F6] dark:text-[#FF7043]" : "text-gray-400 dark:text-gray-500"}`} />
+                                                <span>{sub.title}</span>
+                                            </Link>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
