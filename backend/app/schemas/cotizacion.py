@@ -69,3 +69,7 @@ class ConvertirAFacturaResponse(BaseModel):
     factura_id: int
     numero_factura: str
     mensaje: str
+
+
+class CambiarEstadoRequest(BaseModel):
+    estado: str = Field(..., pattern="^(enviada|aceptada|rechazada)$")

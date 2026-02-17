@@ -57,3 +57,10 @@ export async function descargarPdfCotizacion(id: number): Promise<void> {
     a.remove();
     window.URL.revokeObjectURL(url);
 }
+
+export async function cambiarEstadoCotizacion(id: number, estado: string): Promise<Cotizacion> {
+    return apiFetch<Cotizacion>(`/cotizaciones/${id}/estado`, {
+        method: "PATCH",
+        body: JSON.stringify({ estado }),
+    });
+}

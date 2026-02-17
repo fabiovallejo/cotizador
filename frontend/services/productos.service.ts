@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchBlob } from "@/lib/api";
 import type { Producto } from "@/types/productos";
 
 export async function crearProducto(producto: Producto): Promise<Producto> {
@@ -24,3 +24,17 @@ export async function eliminarProducto(id: number): Promise<void> {
         method: "DELETE",
     });
 }
+
+export async function descargarPlantillaProductos(): Promise<Blob> {
+    return apiFetchBlob("/importacion/plantilla/productos");
+}
+
+export async function importarProductos(file: File): Promise<{ creados: number; errores: { fila: number | string; error: string }[] }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiFetch("/importacion/productos", {
+        method: "POST",
+        body: formData,
+    });
+}
+

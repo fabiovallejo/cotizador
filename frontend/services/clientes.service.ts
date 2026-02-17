@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiFetchBlob } from "@/lib/api";
 import type { Cliente } from "@/types/clientes";
 
 export async function crearCliente(cliente: Cliente): Promise<Cliente> {
@@ -22,5 +22,18 @@ export async function actualizarCliente(cliente: Cliente): Promise<Cliente> {
 export async function eliminarCliente(id: number): Promise<void> {
     return apiFetch(`/clientes/eliminar/${id}`, {
         method: "DELETE",
+    });
+}
+
+export async function descargarPlantillaClientes(): Promise<Blob> {
+    return apiFetchBlob("/importacion/plantilla/clientes");
+}
+
+export async function importarClientes(file: File): Promise<{ creados: number; errores: { fila: number | string; error: string }[] }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiFetch("/importacion/clientes", {
+        method: "POST",
+        body: formData,
     });
 }

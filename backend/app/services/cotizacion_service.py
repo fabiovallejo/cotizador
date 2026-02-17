@@ -463,6 +463,58 @@ async def eliminar_cotizacion(db: AsyncSession, cotizacion_id: int) -> Cotizacio
     return cotizacion
 
 
+# Transiciones de estado válidas
+TRANSICIONES_VALIDAS = {
+    "borrador": ["enviada"],
+    "enviada": ["aceptada", "rechazada"],
+}
+
+TRANSICIONES_LABELS = {
+    "borrador": "Solo puedes marcarla como 'enviada'.",
+    "enviada": "Solo puedes marcarla como 'aceptada' o 'rechazada'.",
+    "aceptada": "Una cotización aceptada no puede cambiar de estado manualmente.",
+    "rechazada": "Una cotización rechazada no puede cambiar de estado manualmente.",
+    "convertida": "Una cotización convertida no puede cambiar de estado.",
+    "vencida": "Una cotización vencida no puede cambiar de estado.",
+}
+
+
+async def cambiar_estado_cotizacion(
+    db: AsyncSession,
+    cotizacion_id: int,
+    nuevo_estado: str,
+) -> Cotizacion:
+    """
+    Cambia el estado de una cotización.
+    Transiciones válidas:
+      borrador  → enviada
+      enviada   → aceptada | rechazada
+    """
+    query = select(Cotizacion).where(
+        Cotizacion.id == cotizacion_id,
+        Cotizacion.deleted_at == None
+    )
+    result = await db.execute(query)
+    cotizacion = result.scalar_one_or_none()
+
+    if not cotizacion:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+
+    estados_permitidos = TRANSICIONES_VALIDAS.get(cotizacion.estado, [])
+    if nuevo_estado not in estados_permitidos:
+        ayuda = TRANSICIONES_LABELS.get(cotizacion.estado, "Transición no permitida.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No se puede cambiar de '{cotizacion.estado}' a '{nuevo_estado}'. {ayuda}",
+        )
+
+    cotizacion.estado = nuevo_estado
+    await db.commit()
+    await db.refresh(cotizacion)
+
+    return cotizacion
+
+
 async def convertir_a_factura(
     db: AsyncSession, 
     cotizacion_id: int,

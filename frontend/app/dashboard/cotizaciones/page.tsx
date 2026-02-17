@@ -6,6 +6,7 @@ import {
     listarCotizaciones,
     eliminarCotizacion,
     descargarPdfCotizacion,
+    cambiarEstadoCotizacion,
 } from "@/services/cotizaciones.service";
 import { listarClientes } from "@/services/clientes.service";
 import { apiFetch } from "@/lib/api";
@@ -23,6 +24,12 @@ import {
     Filter,
     Users,
     Loader2,
+    Send,
+    CheckCircle2,
+    XCircle,
+    AlertTriangle,
+    Clock,
+    ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -85,6 +92,109 @@ const formatDate = (dateStr?: string) => {
     });
 };
 
+/* ── Status Action Dropdown ── */
+function StatusActions({
+    cot,
+    onChangeEstado,
+}: {
+    cot: Cotizacion;
+    onChangeEstado: (id: number, estado: string, label: string) => void;
+}) {
+    const [open, setOpen] = useState(false);
+
+    if (cot.estado === "borrador") {
+        return (
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onChangeEstado(cot.id, "enviada", "Marcar como Enviada");
+                }}
+                className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 transition-all cursor-pointer"
+                title="Marcar como enviada"
+            >
+                <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                <Send className="h-3 w-3" />
+                Marcar Enviada
+            </button>
+        );
+    }
+
+    if (cot.estado === "enviada") {
+        return (
+            <div className="relative">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setOpen(!open);
+                    }}
+                    className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/40 transition-all cursor-pointer"
+                    title="Registrar respuesta del cliente"
+                >
+                    <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    <Clock className="h-3 w-3" />
+                    ¿Respuesta?
+                    <ChevronDown className="h-3 w-3" />
+                </button>
+                {open && (
+                    <>
+                        {/* Backdrop to close */}
+                        <div
+                            className="fixed inset-0 z-40"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setOpen(false);
+                            }}
+                        />
+                        <div className="absolute left-0 top-full mt-1 z-50 w-40 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xl overflow-hidden">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpen(false);
+                                    onChangeEstado(cot.id, "aceptada", "Marcar como Aceptada");
+                                }}
+                                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                            >
+                                <CheckCircle2 className="h-4 w-4" />
+                                Aceptada
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpen(false);
+                                    onChangeEstado(cot.id, "rechazada", "Marcar como Rechazada");
+                                }}
+                                className="flex items-center gap-2 w-full px-3 py-2.5 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            >
+                                <XCircle className="h-4 w-4" />
+                                Rechazada
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    }
+
+    // Terminal states: static badge
+    const cfg = estadoConfig[cot.estado] ?? estadoConfig.borrador;
+    return (
+        <span
+            className={clsx(
+                "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium",
+                cfg.classes
+            )}
+        >
+            {cfg.label}
+        </span>
+    );
+}
+
 export default function CotizacionesPage() {
     const [cotizaciones, setCotizaciones] = useState<Cotizacion[]>([]);
     const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -92,6 +202,13 @@ export default function CotizacionesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [deletingCotizacion, setDeletingCotizacion] =
         useState<Cotizacion | null>(null);
+
+    /* ── Estado change dialog ── */
+    const [estadoChange, setEstadoChange] = useState<{
+        id: number;
+        estado: string;
+        label: string;
+    } | null>(null);
 
     /* ── Filter state ── */
     const [searchTerm, setSearchTerm] = useState("");
@@ -156,6 +273,16 @@ export default function CotizacionesPage() {
         return m;
     }, [usuarios]);
 
+    /* ── Action counts ── */
+    const borradorCount = useMemo(
+        () => cotizaciones.filter((c) => c.estado === "borrador").length,
+        [cotizaciones]
+    );
+    const enviadaCount = useMemo(
+        () => cotizaciones.filter((c) => c.estado === "enviada").length,
+        [cotizaciones]
+    );
+
     const handleEliminar = async () => {
         if (!deletingCotizacion) return;
         try {
@@ -174,6 +301,18 @@ export default function CotizacionesPage() {
             await descargarPdfCotizacion(id);
         } catch (error) {
             console.error("Error downloading PDF:", error);
+        }
+    };
+
+    const handleCambiarEstado = async () => {
+        if (!estadoChange) return;
+        try {
+            await cambiarEstadoCotizacion(estadoChange.id, estadoChange.estado);
+            // Refresh the list
+            await fetchCotizaciones();
+        } catch (error) {
+            console.error("Error changing estado:", error);
+            throw error;
         }
     };
 
@@ -208,6 +347,40 @@ export default function CotizacionesPage() {
                     Nueva Cotización
                 </Link>
             </div>
+
+            {/* ── Action reminders (not invasive — subtle banners) ── */}
+            {!isLoading && (borradorCount > 0 || enviadaCount > 0) && (
+                <div className="flex flex-wrap gap-3">
+                    {borradorCount > 0 && (
+                        <button
+                            onClick={() => setEstadoFilter(estadoFilter === "borrador" ? "" : "borrador")}
+                            className={clsx(
+                                "inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all",
+                                estadoFilter === "borrador"
+                                    ? "bg-blue-100 text-blue-700 ring-1 ring-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-700"
+                                    : "bg-blue-50/80 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/10 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                            )}
+                        >
+                            <Send className="h-3.5 w-3.5" />
+                            {borradorCount} sin enviar
+                        </button>
+                    )}
+                    {enviadaCount > 0 && (
+                        <button
+                            onClick={() => setEstadoFilter(estadoFilter === "enviada" ? "" : "enviada")}
+                            className={clsx(
+                                "inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all",
+                                estadoFilter === "enviada"
+                                    ? "bg-amber-100 text-amber-700 ring-1 ring-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-700"
+                                    : "bg-amber-50/80 text-amber-600 hover:bg-amber-100 dark:bg-amber-900/10 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                            )}
+                        >
+                            <Clock className="h-3.5 w-3.5" />
+                            {enviadaCount} esperando respuesta
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* ── Filter Bar ── */}
             <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 shadow-sm p-4 space-y-3">
@@ -339,19 +512,16 @@ export default function CotizacionesPage() {
                             <div className="col-span-3">Cotización</div>
                             <div className="col-span-3">Cliente</div>
                             <div className="col-span-2">Total</div>
-                            <div className="col-span-2">
+                            <div className="col-span-3">
                                 Estado
                             </div>
                             <div className="col-span-3">Vendedor</div>
                             <div className="col-span-2">Vigencia</div>
-                            <div className="col-span-1"></div>
+                            <div className="col-span-2"></div>
                         </div>
 
                         {/* Rows */}
                         {cotizaciones.map((cot) => {
-                            const cfg =
-                                estadoConfig[cot.estado] ??
-                                estadoConfig.borrador;
                             const isExpired =
                                 cot.fecha_vencimiento &&
                                 new Date(cot.fecha_vencimiento) < new Date();
@@ -400,16 +570,14 @@ export default function CotizacionesPage() {
                                         </div>
                                     </div>
 
-                                    {/* Estado */}
-                                    <div className="col-span-2 flex">
-                                        <span
-                                            className={clsx(
-                                                "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium",
-                                                cfg.classes
-                                            )}
-                                        >
-                                            {cfg.label}
-                                        </span>
+                                    {/* Estado (interactive) */}
+                                    <div className="col-span-3 flex">
+                                        <StatusActions
+                                            cot={cot}
+                                            onChangeEstado={(id, estado, label) =>
+                                                setEstadoChange({ id, estado, label })
+                                            }
+                                        />
                                     </div>
 
                                     {/* Vendedor */}
@@ -419,7 +587,7 @@ export default function CotizacionesPage() {
                                     </div>
 
                                     {/* Vigencia */}
-                                    <div className="col-span-4 flex items-center gap-1 text-sm">
+                                    <div className="col-span-2 flex items-center gap-1 text-sm">
                                         <CalendarDays className="h-3.5 w-3.5 text-gray-400 shrink-0" />
                                         <span
                                             className={clsx(
@@ -436,7 +604,7 @@ export default function CotizacionesPage() {
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="col-span-1 flex items-center justify-end gap-1">
+                                    <div className="col-span-2 flex items-center justify-end gap-1">
                                         {esBorrador && (
                                             <Link
                                                 href={`/dashboard/cotizaciones/${cot.id}/editar`}
@@ -485,6 +653,29 @@ export default function CotizacionesPage() {
                 title="Eliminar Cotización"
                 description={`¿Estás seguro de que deseas eliminar la cotización "${deletingCotizacion?.numero_cotizacion}"? Esta acción no se puede deshacer.`}
                 confirmLabel="Sí, eliminar"
+            />
+
+            {/* Estado Change Confirm */}
+            <ConfirmDialog
+                open={!!estadoChange}
+                onClose={() => setEstadoChange(null)}
+                onConfirm={handleCambiarEstado}
+                title={estadoChange?.label ?? "Cambiar Estado"}
+                description={
+                    estadoChange?.estado === "enviada"
+                        ? "¿Ya enviaste esta cotización al cliente? Se marcará como enviada y no podrá editarse."
+                        : estadoChange?.estado === "aceptada"
+                            ? "¿El cliente aceptó esta cotización?"
+                            : "¿El cliente rechazó esta cotización?"
+                }
+                confirmLabel={
+                    estadoChange?.estado === "enviada"
+                        ? "Sí, fue enviada"
+                        : estadoChange?.estado === "aceptada"
+                            ? "Sí, fue aceptada"
+                            : "Sí, fue rechazada"
+                }
+                variant={estadoChange?.estado === "rechazada" ? "destructive" : "default"}
             />
         </div>
     );

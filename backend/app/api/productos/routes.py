@@ -59,7 +59,7 @@ async def crear(
 )
 async def listar(
     skip: int = Query(0, ge=0, description="Registros a saltar"),
-    limit: int = Query(50, ge=1, le=100, description="Máximo de registros"),
+    limit: int = Query(1000, ge=1, le=5000, description="Máximo de registros"),
     estado: Optional[str] = Query(None, description="Filtrar por estado: activo | inactivo"),
     busqueda: Optional[str] = Query(None, description="Buscar por razón social, RUC o nombre comercial"),
     db: AsyncSession = Depends(get_tenant_db),

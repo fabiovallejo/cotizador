@@ -15,13 +15,15 @@ from app.services.cotizacion_service import (
     obtener_items_cotizacion, 
     editar_cotizacion, 
     eliminar_cotizacion,
-    convertir_a_factura
+    convertir_a_factura,
+    cambiar_estado_cotizacion
 )
 from app.schemas.cotizacion import (
     CreateCotizacionRequest, 
     CotizacionResponse, 
     ItemCotizacionResponse,
-    ConvertirAFacturaResponse
+    ConvertirAFacturaResponse,
+    CambiarEstadoRequest
 )
 from app.models.tenant import Cotizacion, ItemCotizacion, Cliente
 from app.models.shared import Empresa, Usuario, CuentaBancaria
@@ -76,7 +78,7 @@ async def crear_cotizacion_endpoint(
 )
 async def listar(
     skip: int = Query(0, ge=0, description="Registros a saltar"),
-    limit: int = Query(50, ge=1, le=100, description="Máximo de registros"),
+    limit: int = Query(1000, ge=1, le=5000, description="Máximo de registros"),
     estado: Optional[str] = Query(None, description="Filtrar por estado: borrador | enviada | aceptada | rechazada | convertida"),
     usuario_id: Optional[int] = Query(None, description="Filtrar por vendedor (usuario_id)"),
     busqueda: Optional[str] = Query(None, description="Buscar por número de cotización, razón social o documento del cliente"),
@@ -283,6 +285,29 @@ async def editar(
     - Para eliminar items: no incluirlos en el array "items"
     """
     cotizacion = await editar_cotizacion(db, id, data)
+    return cotizacion
+
+
+@router.patch(
+    "/{id}/estado",
+    response_model=CotizacionResponse,
+    summary="Cambiar estado de cotización",
+    description="Cambia el estado de una cotización. Transiciones: borrador→enviada, enviada→aceptada|rechazada."
+)
+async def cambiar_estado(
+    id: int,
+    data: CambiarEstadoRequest,
+    db: AsyncSession = Depends(get_tenant_db),
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """
+    Cambia el estado de una cotización.
+    
+    Transiciones válidas:
+    - borrador → enviada
+    - enviada → aceptada | rechazada
+    """
+    cotizacion = await cambiar_estado_cotizacion(db, id, data.estado)
     return cotizacion
 
 

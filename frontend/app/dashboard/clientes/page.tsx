@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EditModal, type FieldConfig } from "@/components/ui/EditModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { listarClientes, actualizarCliente, crearCliente, eliminarCliente } from "@/services/clientes.service";
+import { ImportModal } from "@/components/ui/ImportModal";
+import { listarClientes, actualizarCliente, crearCliente, eliminarCliente, descargarPlantillaClientes, importarClientes } from "@/services/clientes.service";
 import type { Cliente } from "@/types/clientes";
-import { Plus, Pencil, Trash2, Mail, Phone } from "lucide-react";
+import { Plus, Pencil, Trash2, Mail, Phone, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { clsx } from "clsx";
+import { useAuth } from "@/hooks/useAuth";
 
 /* ── Field configuration for the edit modal ── */
 const clienteFields: FieldConfig<Cliente>[] = [
@@ -37,26 +39,30 @@ const clienteFields: FieldConfig<Cliente>[] = [
 ];
 
 export default function ClientesPage() {
+    const { user } = useAuth();
+    const isAdmin = user?.rol === "administrador";
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [deletingCliente, setDeletingCliente] = useState<Cliente | null>(null);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+    const fetchClientes = async () => {
+        setIsLoading(true);
+        try {
+            const data = await listarClientes();
+            setClientes(data);
+        } catch (error) {
+            console.error("Error fetching clientes:", error);
+            toast.error("Error al cargar los clientes");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchClientes = async () => {
-            try {
-                const data = await listarClientes();
-                setClientes(data);
-            } catch (error) {
-                console.error("Error fetching clientes:", error);
-                toast.error("Error al cargar los clientes");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         fetchClientes();
     }, []);
 
@@ -200,13 +206,24 @@ export default function ClientesPage() {
                         Gestiona tu cartera de clientes y sus datos.
                     </p>
                 </div>
-                <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-orange-500/20 hover:bg-orange-700 hover:shadow-orange-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 cursor-pointer"
-                >
-                    <Plus className="h-4 w-4" />
-                    Nuevo Cliente
-                </button>
+                <div className="flex items-center gap-3">
+                    {isAdmin && (
+                        <button
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all cursor-pointer"
+                        >
+                            <Upload className="h-4 w-4" />
+                            Importar Excel
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-orange-500/20 hover:bg-orange-700 hover:shadow-orange-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 cursor-pointer"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Nuevo Cliente
+                    </button>
+                </div>
             </div>
 
             {/* Table Section */}
@@ -255,6 +272,18 @@ export default function ClientesPage() {
                 title="Eliminar Cliente"
                 description={`¿Estás seguro de que deseas eliminar a "${deletingCliente?.razon_social}"? Esta acción no se puede deshacer.`}
                 confirmLabel="Sí, eliminar"
+            />
+
+            {/* Import Modal */}
+            <ImportModal
+                open={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                title="Importar Clientes"
+                entityName="clientes"
+                onDownloadTemplate={descargarPlantillaClientes}
+                onImport={importarClientes}
+                onSuccess={() => { toast.success("Clientes importados"); fetchClientes(); }}
+                templateFilename="plantilla_clientes.xlsx"
             />
         </div>
     );

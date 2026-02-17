@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { DataTable, type Column } from "@/components/ui/DataTable";
 import { EditModal, type FieldConfig } from "@/components/ui/EditModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { listarProductos, actualizarProducto, crearProducto, eliminarProducto } from "@/services/productos.service";
+import { ImportModal } from "@/components/ui/ImportModal";
+import { listarProductos, actualizarProducto, crearProducto, eliminarProducto, descargarPlantillaProductos, importarProductos } from "@/services/productos.service";
 import type { Producto } from "@/types/productos";
-import { Plus, Pencil, Trash2, Package, Tag, Wrench, Layers } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Tag, Wrench, Layers, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { clsx } from "clsx";
+import { useAuth } from "@/hooks/useAuth";
 
 /* ── Field configuration for the modals ── */
 const productoFields: FieldConfig<Producto>[] = [
@@ -98,26 +100,30 @@ const tipoConfig = (tipo: string) => {
 };
 
 export default function ProductosPage() {
+    const { user } = useAuth();
+    const isAdmin = user?.rol === "administrador";
     const [productos, setProductos] = useState<Producto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [editingProducto, setEditingProducto] = useState<Producto | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [deletingProducto, setDeletingProducto] = useState<Producto | null>(null);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+    const fetchProductos = async () => {
+        setIsLoading(true);
+        try {
+            const data = await listarProductos();
+            setProductos(data);
+        } catch (error) {
+            console.error("Error fetching productos:", error);
+            toast.error("Error al cargar los productos");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchProductos = async () => {
-            try {
-                const data = await listarProductos();
-                setProductos(data);
-            } catch (error) {
-                console.error("Error fetching productos:", error);
-                toast.error("Error al cargar los productos");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         fetchProductos();
     }, []);
 
@@ -295,13 +301,24 @@ export default function ProductosPage() {
                         Gestiona tu catálogo de productos y servicios.
                     </p>
                 </div>
-                <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-orange-500/20 hover:bg-orange-700 hover:shadow-orange-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 cursor-pointer"
-                >
-                    <Plus className="h-4 w-4" />
-                    Nuevo Producto
-                </button>
+                <div className="flex items-center gap-3">
+                    {isAdmin && (
+                        <button
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all cursor-pointer"
+                        >
+                            <Upload className="h-4 w-4" />
+                            Importar Excel
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-orange-500/20 hover:bg-orange-700 hover:shadow-orange-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 cursor-pointer"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Nuevo Producto
+                    </button>
+                </div>
             </div>
 
             {/* Table Section */}
@@ -360,6 +377,18 @@ export default function ProductosPage() {
                 title="Eliminar Producto"
                 description={`¿Estás seguro de que deseas eliminar "${deletingProducto?.nombre}"? Esta acción no se puede deshacer.`}
                 confirmLabel="Sí, eliminar"
+            />
+
+            {/* Import Modal */}
+            <ImportModal
+                open={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                title="Importar Productos"
+                entityName="productos"
+                onDownloadTemplate={descargarPlantillaProductos}
+                onImport={importarProductos}
+                onSuccess={() => { toast.success("Productos importados"); fetchProductos(); }}
+                templateFilename="plantilla_productos.xlsx"
             />
         </div>
     );

@@ -52,6 +52,7 @@ from app.api.empresa.routes import router as empresa_router
 from app.api.utils.routes import router as utils_router
 from app.api.config.routes import router as config_router
 from app.api.reportes.routes import router as reportes_router
+from app.api.importacion.routes import router as importacion_router
 
 app.include_router(auth_router)
 app.include_router(admin_router)
@@ -63,6 +64,7 @@ app.include_router(empresa_router)
 app.include_router(utils_router)
 app.include_router(config_router)
 app.include_router(reportes_router)
+app.include_router(importacion_router)
 
 logger.info(f" Aplicación configurada en modo {settings.environment}")
 

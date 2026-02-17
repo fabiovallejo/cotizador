@@ -5,13 +5,14 @@ import {
     FileText, TrendingUp, TrendingDown, DollarSign, Target,
     AlertTriangle, Clock, Users, Package, Award,
     ArrowUpRight, ArrowDownRight, Bell, UserX,
-    Loader2, ChevronDown,
+    Loader2, ChevronDown, Send, CheckCircle2, XCircle,
 } from "lucide-react";
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, Area, AreaChart,
 } from "recharts";
 import { obtenerDashboard, DashboardData } from "@/services/dashboard.service";
+import { cambiarEstadoCotizacion } from "@/services/cotizaciones.service";
 import Link from "next/link";
 
 /* ── Helpers ── */
@@ -35,8 +36,8 @@ function VariacionBadge({ valor, invertido = false }: { valor: number; invertido
     const Icon = valor >= 0 ? ArrowUpRight : ArrowDownRight;
     return (
         <span className={`inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded-md ${isPositive
-                ? "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30"
-                : "text-red-500 bg-red-50 dark:text-red-400 dark:bg-red-900/30"
+            ? "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30"
+            : "text-red-500 bg-red-50 dark:text-red-400 dark:bg-red-900/30"
             }`}>
             <Icon className="w-3 h-3" />
             {Math.abs(valor)}%
@@ -64,6 +65,19 @@ export default function DashboardPage() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+
+    const handleQuickEstado = async (id: number, estado: string) => {
+        setActionLoadingId(id);
+        try {
+            await cambiarEstadoCotizacion(id, estado);
+            await cargar();
+        } catch (e) {
+            console.error("Error cambiando estado:", e);
+        } finally {
+            setActionLoadingId(null);
+        }
+    };
 
     const cargar = useCallback(async () => {
         setLoading(true);
@@ -128,8 +142,8 @@ export default function DashboardPage() {
                                     key={p.value}
                                     onClick={() => { setPeriodo(p.value); setMenuOpen(false); }}
                                     className={`w-full text-left px-4 py-2.5 text-sm transition ${periodo === p.value
-                                            ? "bg-[#2E66F6]/10 text-[#2E66F6] dark:text-[#FF7043] font-semibold"
-                                            : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"
+                                        ? "bg-[#2E66F6]/10 text-[#2E66F6] dark:text-[#FF7043] font-semibold"
+                                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5"
                                         }`}
                                 >
                                     {p.label}
@@ -232,13 +246,14 @@ export default function DashboardPage() {
                                     <th className="text-center px-4 py-2.5 text-xs font-medium text-red-500/70 uppercase tracking-wider">Días</th>
                                     <th className="text-right px-5 py-2.5 text-xs font-medium text-red-500/70 uppercase tracking-wider">Monto</th>
                                     <th className="text-left px-4 py-2.5 text-xs font-medium text-red-500/70 uppercase tracking-wider">Vendedor</th>
+                                    <th className="text-center px-4 py-2.5 text-xs font-medium text-red-500/70 uppercase tracking-wider">Acción</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-red-100 dark:divide-red-900/20">
                                 {data.cotizaciones_pendientes.map((p) => (
                                     <tr key={p.id} className="hover:bg-red-100/30 dark:hover:bg-red-900/10 transition-colors">
                                         <td className="px-5 py-2.5">
-                                            <Link href={`/dashboard/cotizaciones/${p.id}/editar`}
+                                            <Link href={`/dashboard/cotizaciones`}
                                                 className="font-medium text-red-700 dark:text-red-400 hover:underline">
                                                 {p.cliente}
                                             </Link>
@@ -253,6 +268,25 @@ export default function DashboardPage() {
                                         </td>
                                         <td className="px-5 py-2.5 text-right font-semibold text-gray-900 dark:text-white">S/ {fmt(p.monto)}</td>
                                         <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400">{p.vendedor}</td>
+                                        <td className="px-4 py-2.5 text-center">
+                                            {actionLoadingId === p.id ? (
+                                                <Loader2 className="w-4 h-4 animate-spin text-blue-500 mx-auto" />
+                                            ) : p.estado === "borrador" ? (
+                                                <button
+                                                    onClick={() => handleQuickEstado(p.id, "enviada")}
+                                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 transition-colors"
+                                                    title="Marcar como enviada"
+                                                >
+                                                    <Send className="w-3 h-3" />
+                                                    Enviada
+                                                </button>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+                                                    <Clock className="w-3 h-3" />
+                                                    Esperando
+                                                </span>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -338,8 +372,8 @@ export default function DashboardPage() {
                             {data.top_productos.map((p, i) => (
                                 <Link href="/dashboard/reportes/productos-top" key={p.id}
                                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${p.tasa_conversion < 30
-                                            ? "bg-amber-50/50 dark:bg-amber-900/10 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                                            : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+                                        ? "bg-amber-50/50 dark:bg-amber-900/10 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                        : "hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                                         }`}
                                 >
                                     <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0 ${i === 0 ? "bg-amber-400" : i === 1 ? "bg-gray-400" : i === 2 ? "bg-amber-700" : "bg-gray-300 dark:bg-gray-600"
@@ -360,8 +394,8 @@ export default function DashboardPage() {
                                             S/ {fmtShort(p.ingresos)}
                                         </p>
                                         <p className={`text-[11px] font-medium ${p.tasa_conversion >= 60 ? "text-emerald-500" :
-                                                p.tasa_conversion >= 30 ? "text-gray-400" :
-                                                    "text-amber-500"
+                                            p.tasa_conversion >= 30 ? "text-gray-400" :
+                                                "text-amber-500"
                                             }`}>
                                             {p.tasa_conversion}%
                                         </p>
@@ -406,8 +440,8 @@ export default function DashboardPage() {
                                         <td className="px-4 py-3 text-center text-emerald-600 dark:text-emerald-400 font-medium">{p.cotizaciones_cerradas}</td>
                                         <td className="px-4 py-3 text-center">
                                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${p.tasa_conversion < 30
-                                                    ? "bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400"
-                                                    : "bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400"
+                                                ? "bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400"
+                                                : "bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400"
                                                 }`}>
                                                 {p.tasa_conversion}%
                                             </span>
@@ -457,8 +491,8 @@ export default function DashboardPage() {
                                             <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{c.ultima_cotizacion}</td>
                                             <td className="px-4 py-3 text-center">
                                                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${c.dias > 60
-                                                        ? "bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400"
-                                                        : "bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400"
+                                                    ? "bg-red-50 text-red-500 dark:bg-red-900/30 dark:text-red-400"
+                                                    : "bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400"
                                                     }`}>
                                                     <Clock className="w-3 h-3" />
                                                     {c.dias}d
@@ -497,8 +531,8 @@ export default function DashboardPage() {
                                                 <div className="flex-1 h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
                                                     <div
                                                         className={`h-full rounded-full transition-all ${i === 0
-                                                                ? "bg-gradient-to-r from-amber-400 to-amber-500"
-                                                                : "bg-gradient-to-r from-[#2E66F6] to-[#1a4fd4]"
+                                                            ? "bg-gradient-to-r from-amber-400 to-amber-500"
+                                                            : "bg-gradient-to-r from-[#2E66F6] to-[#1a4fd4]"
                                                             }`}
                                                         style={{ width: `${barWidth}%` }}
                                                     />

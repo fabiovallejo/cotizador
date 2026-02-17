@@ -34,6 +34,7 @@ export interface CotizacionPendiente {
     dias: number;
     fecha: string;
     vendedor: string;
+    estado: string;
 }
 
 export interface SerieDiaria {

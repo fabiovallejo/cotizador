@@ -509,6 +509,7 @@ async def dashboard(
             "dias": dias,
             "fecha": cot.created_at.strftime("%Y-%m-%d") if cot.created_at else "",
             "vendedor": pend_vendedores.get(cot.usuario_id, "—"),
+            "estado": cot.estado,
         })
 
     # =========================================================================
