@@ -9,7 +9,7 @@ export async function crearProducto(producto: Producto): Promise<Producto> {
 }
 
 export async function listarProductos(): Promise<Producto[]> {
-    return apiFetch<Producto[]>("/productos/listar");
+    return apiFetch<Producto[]>("/productos/listar?limit=5000");
 }
 
 export async function actualizarProducto(producto: Producto): Promise<Producto> {

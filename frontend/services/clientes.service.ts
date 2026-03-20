@@ -9,7 +9,7 @@ export async function crearCliente(cliente: Cliente): Promise<Cliente> {
 }
 
 export async function listarClientes(): Promise<Cliente[]> {
-    return apiFetch<Cliente[]>("/clientes/listar")
+    return apiFetch<Cliente[]>("/clientes/listar?limit=5000")
 }
 
 export async function actualizarCliente(cliente: Cliente): Promise<Cliente> {
