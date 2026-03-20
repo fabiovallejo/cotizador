@@ -23,6 +23,7 @@ import {
 /* ── Roles config ── */
 const TABS_BY_ROLE: Record<string, string[]> = {
     administrador: ["mi-cuenta", "empresa", "cuentas-bancarias", "usuarios", "auditoria"],
+    admin: ["mi-cuenta", "empresa", "cuentas-bancarias", "usuarios", "auditoria"],
     contador: ["mi-cuenta", "empresa", "cuentas-bancarias", "usuarios", "auditoria"],
     gerente_ventas: ["mi-cuenta", "empresa", "cuentas-bancarias"],
     vendedor: ["mi-cuenta"],
@@ -215,7 +216,7 @@ function TabEmpresa({ showToast, rol }: { showToast: (m: string, t?: "ok" | "err
     const [form, setForm] = useState({ serie_factura: "", serie_boleta: "", serie_nc: "", serie_nd: "", logo_url: "", telefono: "", email: "" });
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
-    const canEditSeries = rol === "administrador" || rol === "contador";
+    const canEditSeries = rol === "administrador" || rol === "admin" || rol === "contador";
 
     // Logo state
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -318,8 +319,8 @@ function TabEmpresa({ showToast, rol }: { showToast: (m: string, t?: "ok" | "err
                             onDragLeave={() => setDragOver(false)}
                             onDrop={handleDrop}
                             className={`relative flex flex-col items-center justify-center gap-2 px-6 py-5 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200 ${dragOver
-                                    ? "border-[#2E66F6] bg-blue-50/50 dark:bg-blue-900/10"
-                                    : "border-gray-200 dark:border-white/10 hover:border-[#2E66F6]/50 hover:bg-gray-50/50 dark:hover:bg-white/[0.02]"
+                                ? "border-[#2E66F6] bg-blue-50/50 dark:bg-blue-900/10"
+                                : "border-gray-200 dark:border-white/10 hover:border-[#2E66F6]/50 hover:bg-gray-50/50 dark:hover:bg-white/[0.02]"
                                 }`}
                         >
                             <input type="file" accept=".png,.jpg,.jpeg" onChange={handleFileChange} className="sr-only" />
@@ -383,9 +384,9 @@ function TabCuentasBancarias({ showToast, rol }: { showToast: (m: string, t?: "o
     const emptyForm: CuentaBancariaForm = { nombre_banco: "BCP", numero_cuenta: "", cci: "", moneda: "PEN", tipo_cuenta: "corriente", titular: "" };
     const [form, setForm] = useState<CuentaBancariaForm>(emptyForm);
 
-    const canCreate = ["administrador", "contador", "gerente_ventas"].includes(rol);
-    const canEdit = ["administrador", "contador"].includes(rol);
-    const canDelete = rol === "administrador";
+    const canCreate = ["administrador", "admin", "contador", "gerente_ventas"].includes(rol);
+    const canEdit = ["administrador", "admin", "contador"].includes(rol);
+    const canDelete = rol === "administrador" || rol === "admin";
 
     const load = useCallback(() => {
         setLoading(true);
@@ -537,7 +538,7 @@ function TabUsuarios({ showToast, rol }: { showToast: (m: string, t?: "ok" | "er
     const [form, setForm] = useState<CrearUsuarioForm>({ email: "", nombre: "", apellido: "", password: "", rol: "vendedor" });
     const [editForm, setEditForm] = useState({ nombre: "", apellido: "", rol: "", estado: "" });
 
-    const canDelete = rol === "administrador";
+    const canDelete = rol === "administrador" || rol === "admin";
 
     const load = useCallback(() => {
         setLoading(true);
@@ -650,7 +651,7 @@ function TabUsuarios({ showToast, rol }: { showToast: (m: string, t?: "ok" | "er
                                         <td className="py-3 px-4 text-right">
                                             <div className="flex justify-end gap-1">
                                                 <button onClick={() => openEdit(u)} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-600 transition"><Pencil className="w-4 h-4" /></button>
-                                                {canDelete && u.rol !== "administrador" && <button onClick={() => handleDelete(u.id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600 transition"><Trash2 className="w-4 h-4" /></button>}
+                                                {canDelete && u.rol !== "administrador" && u.rol !== "admin" && <button onClick={() => handleDelete(u.id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600 transition"><Trash2 className="w-4 h-4" /></button>}
                                             </div>
                                         </td>
                                     </>

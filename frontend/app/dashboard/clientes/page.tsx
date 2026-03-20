@@ -40,7 +40,7 @@ const clienteFields: FieldConfig<Cliente>[] = [
 
 export default function ClientesPage() {
     const { user } = useAuth();
-    const isAdmin = user?.rol === "administrador";
+    const isAdmin = user?.rol === "administrador" || user?.rol === "admin";
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);

@@ -101,7 +101,7 @@ const tipoConfig = (tipo: string) => {
 
 export default function ProductosPage() {
     const { user } = useAuth();
-    const isAdmin = user?.rol === "administrador";
+    const isAdmin = user?.rol === "administrador" || user?.rol === "admin";
     const [productos, setProductos] = useState<Producto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [editingProducto, setEditingProducto] = useState<Producto | null>(null);
