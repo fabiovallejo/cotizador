@@ -104,7 +104,7 @@ export function Sidebar() {
 
                     <div className={`flex flex-col whitespace-nowrap transition-all duration-300 ${isExpanded ? "opacity-100 max-w-[150px] ml-1" : "opacity-0 max-w-0"}`}>
                         <span className="font-bold text-lg text-gray-900 dark:text-white tracking-tight leading-none">
-                            Facturador
+                            Cotizador
                         </span>
                         <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
                             Enterprise

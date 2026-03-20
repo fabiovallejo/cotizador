@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Facturador SaaS",
+  title: "Cotizador",
   description: "Sistema de facturación electrónica SUNAT",
 };
 

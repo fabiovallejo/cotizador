@@ -57,7 +57,7 @@ export default function LoginPage() {
                     <div>
                         <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-8">
                             <span className="flex h-2.5 w-2.5 rounded-full bg-[#FF7043] animate-pulse"></span>
-                            <span className="text-xs font-medium text-white/80 tracking-wide uppercase">Facturador SaaS</span>
+                            <span className="text-xs font-medium text-white/80 tracking-wide uppercase">Cotizador</span>
                         </div>
                         <h1 className="text-5xl xl:text-6xl font-bold text-white tracking-tight leading-[1.1]">
                             Gestiona tu<br />
@@ -104,7 +104,7 @@ export default function LoginPage() {
 
                     {/* Footer info */}
                     <div className="flex gap-8 text-white/40 text-sm font-medium pt-8 border-t border-white/5">
-                        <span>© 2026 Facturador</span>
+                        <span>© 2026 Cotizador</span>
                         <a href="#" className="hover:text-white transition-colors">Ayuda</a>
                         <a href="#" className="hover:text-white transition-colors">Contacto</a>
                     </div>
@@ -118,7 +118,7 @@ export default function LoginPage() {
                     {/* Mobile Logo */}
                     <div className="lg:hidden mb-8 flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-[#FF7043]"></div>
-                        <span className="font-bold text-xl text-[#263238]">Facturador</span>
+                        <span className="font-bold text-xl text-[#263238]">Cotizador</span>
                     </div>
 
                     <div className="mb-10 text-center lg:text-left">
