@@ -62,6 +62,7 @@ function ChartTooltip({ active, payload, label }: any) {
 
 export default function DashboardPage() {
     const [periodo, setPeriodo] = useState(30);
+    const [monedaIngresos, setMonedaIngresos] = useState<"PEN" | "USD">("PEN");
     const [menuOpen, setMenuOpen] = useState(false);
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -187,19 +188,25 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Ingresos */}
-                <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
                     <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-gradient-to-br from-[#FF7043] to-[#e64a19] opacity-[0.08]" />
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF7043] to-[#e64a19] flex items-center justify-center shadow-lg shadow-orange-500/20">
+                    <div className="flex items-start justify-between mb-3 relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF7043] to-[#e64a19] flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
                             <DollarSign className="w-5 h-5 text-white" />
                         </div>
-                        <VariacionBadge valor={k.ingresos.variacion} />
+                        <div className="flex flex-col items-end gap-2">
+                            <VariacionBadge valor={monedaIngresos === "PEN" ? k.ingresos_pen.variacion : k.ingresos_usd.variacion} />
+                            <div className="flex items-center bg-gray-100 dark:bg-white/10 rounded-lg p-0.5">
+                                <button onClick={() => setMonedaIngresos("PEN")} className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${monedaIngresos === "PEN" ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>PEN</button>
+                                <button onClick={() => setMonedaIngresos("USD")} className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-colors ${monedaIngresos === "USD" ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"}`}>USD</button>
+                            </div>
+                        </div>
                     </div>
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                        S/ {fmtShort(k.ingresos.valor)}
+                    <p className="text-3xl font-bold text-gray-900 dark:text-white relative z-10 transition-all">
+                        {monedaIngresos === "PEN" ? "S/ " : "$ "}{fmtShort(monedaIngresos === "PEN" ? k.ingresos_pen.valor : k.ingresos_usd.valor)}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Ingresos · Prom. S/ {fmt(k.ingresos.ticket_promedio)}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 relative z-10">
+                        Ingresos · Prom. {monedaIngresos === "PEN" ? "S/ " : "$ "}{fmt(monedaIngresos === "PEN" ? k.ingresos_pen.ticket_promedio : k.ingresos_usd.ticket_promedio)}
                     </p>
                 </div>
 

@@ -460,9 +460,11 @@
                 <div class="cond-item">
                     <span class="cond-label">Forma de pago:</span>
                     <span class="cond-value">{% if cotizacion.forma_pago == 'contado' %}Contado{% elif
+                        cotizacion.forma_pago == 'credito_7' %}Crédito 7 días{% elif
                         cotizacion.forma_pago == 'credito_15' %}Crédito 15 días{% elif cotizacion.forma_pago ==
                         'credito_30' %}Crédito 30 días{% elif cotizacion.forma_pago == 'credito_60' %}Crédito 60 días{%
-                        elif cotizacion.forma_pago == 'credito_90' %}Crédito 90 días{% else %}Según acuerdo{% endif
+                        elif cotizacion.forma_pago == 'credito_90' %}Crédito 90 días{% elif
+                        cotizacion.forma_pago == '50_orden_50_contra_entrega' %}50% orden 50% contra entrega{% else %}Según acuerdo{% endif
                         %}</span>
                 </div>
                 <div class="cond-item">

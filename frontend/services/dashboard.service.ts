@@ -15,7 +15,12 @@ export interface DashboardKPIs {
         total: number;
         variacion: number;
     };
-    ingresos: {
+    ingresos_pen: {
+        valor: number;
+        variacion: number;
+        ticket_promedio: number;
+    };
+    ingresos_usd: {
         valor: number;
         variacion: number;
         ticket_promedio: number;

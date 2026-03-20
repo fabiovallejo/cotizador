@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     #ADMIN SECRET
     admin_secret_key: str = "dev-admin-secret-key-change-in-production"
 
+    #OpenAI (SDK Agents)
+    openai_api_key: Optional[str] = None
+
     class Config:
         env_file = ".env"
         case_sensitive = False

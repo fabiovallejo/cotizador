@@ -34,6 +34,8 @@ services:
     command: /start.sh
     volumes:
       - uploads_data:/app/uploads
+    environment:
+      - PYTHONUNBUFFERED=1
 
 networks:
   facturador-network:

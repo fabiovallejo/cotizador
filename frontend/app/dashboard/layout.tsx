@@ -2,6 +2,7 @@
 
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Chatbot } from "@/components/chatbot/Chatbot";
 
 export default function DashboardLayout({
     children,
@@ -15,6 +16,7 @@ export default function DashboardLayout({
                 <main className="flex-1 ml-20 p-8 transition-all duration-300 ease-in-out">
                     {children}
                 </main>
+                <Chatbot />
             </div>
         </ThemeProvider>
     );

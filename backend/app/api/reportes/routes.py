@@ -405,8 +405,17 @@ async def dashboard(
     async def _kpis_periodo(desde: datetime, hasta: datetime):
         q = select(
             func.count(Cotizacion.id).label("total"),
-            func.coalesce(func.sum(Cotizacion.total), 0).label("monto"),
+            func.coalesce(func.sum(case(
+                (and_(Cotizacion.estado.in_(["aceptada", "convertida"]), func.coalesce(Cotizacion.moneda, "PEN") == "PEN"), Cotizacion.total),
+                else_=0
+            )), 0).label("monto_pen"),
+            func.coalesce(func.sum(case(
+                (and_(Cotizacion.estado.in_(["aceptada", "convertida"]), Cotizacion.moneda == "USD"), Cotizacion.total),
+                else_=0
+            )), 0).label("monto_usd"),
             func.count(case((Cotizacion.estado.in_(["aceptada", "convertida"]), 1))).label("aceptadas"),
+            func.count(case((and_(Cotizacion.estado.in_(["aceptada", "convertida"]), func.coalesce(Cotizacion.moneda, "PEN") == "PEN"), 1))).label("aceptadas_pen"),
+            func.count(case((and_(Cotizacion.estado.in_(["aceptada", "convertida"]), Cotizacion.moneda == "USD"), 1))).label("aceptadas_usd"),
             func.count(case((Cotizacion.estado == "rechazada", 1))).label("rechazadas"),
             func.count(case((
                 and_(
@@ -427,9 +436,13 @@ async def dashboard(
 
     total_actual = actual.total or 0
     total_anterior = anterior.total or 0
-    monto_actual = float(actual.monto or 0)
-    monto_anterior = float(anterior.monto or 0)
+    monto_pen_actual = float(actual.monto_pen or 0)
+    monto_pen_anterior = float(anterior.monto_pen or 0)
+    monto_usd_actual = float(actual.monto_usd or 0)
+    monto_usd_anterior = float(anterior.monto_usd or 0)
     aceptadas_actual = actual.aceptadas or 0
+    aceptadas_pen_actual = actual.aceptadas_pen or 0
+    aceptadas_usd_actual = actual.aceptadas_usd or 0
     tasa_conversion = round((aceptadas_actual / total_actual * 100) if total_actual > 0 else 0, 1)
     tasa_anterior = round(((anterior.aceptadas or 0) / total_anterior * 100) if total_anterior > 0 else 0, 1)
     pendientes = actual.pendientes or 0
@@ -459,10 +472,15 @@ async def dashboard(
             "total": total_actual,
             "variacion": round(tasa_conversion - tasa_anterior, 1),
         },
-        "ingresos": {
-            "valor": round(monto_actual, 2),
-            "variacion": _variacion(monto_actual, monto_anterior),
-            "ticket_promedio": round(monto_actual / total_actual if total_actual > 0 else 0, 2),
+        "ingresos_pen": {
+            "valor": round(monto_pen_actual, 2),
+            "variacion": _variacion(monto_pen_actual, monto_pen_anterior),
+            "ticket_promedio": round(monto_pen_actual / aceptadas_pen_actual if aceptadas_pen_actual > 0 else 0, 2),
+        },
+        "ingresos_usd": {
+            "valor": round(monto_usd_actual, 2),
+            "variacion": _variacion(monto_usd_actual, monto_usd_anterior),
+            "ticket_promedio": round(monto_usd_actual / aceptadas_usd_actual if aceptadas_usd_actual > 0 else 0, 2),
         },
         "alertas": {
             "pendientes": pendientes,
