@@ -12,6 +12,7 @@ export interface LoginResponse {
 export interface User {
     usuario_id: number;
     empresa_id: number;
+    nombre: string;
     rol: string;
     db_schema: string;
 }

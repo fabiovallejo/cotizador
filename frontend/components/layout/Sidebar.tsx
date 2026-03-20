@@ -179,8 +179,8 @@ export function Sidebar() {
                                                 key={sub.title}
                                                 href={sub.href}
                                                 className={`flex items-center gap-2.5 pl-9 pr-3 py-2 rounded-lg text-[13px] transition-all duration-200 ${isSubActive
-                                                        ? "text-[#2E66F6] dark:text-[#FF7043] font-semibold bg-blue-50/50 dark:bg-white/5"
-                                                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5"
+                                                    ? "text-[#2E66F6] dark:text-[#FF7043] font-semibold bg-blue-50/50 dark:bg-white/5"
+                                                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5"
                                                     }`}
                                             >
                                                 <SubIcon className={`w-4 h-4 shrink-0 ${isSubActive ? "text-[#2E66F6] dark:text-[#FF7043]" : "text-gray-400 dark:text-gray-500"}`} />
@@ -242,8 +242,8 @@ export function Sidebar() {
                     </div>
 
                     <div className={`flex flex-col whitespace-nowrap overflow-hidden transition-all duration-300 ${isExpanded ? "opacity-100 max-w-[120px]" : "opacity-0 max-w-0"}`}>
-                        <span className="font-semibold text-[13px] text-gray-900 dark:text-white truncate leading-tight">Fabio Vallejo</span>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate leading-tight">Admin</span>
+                        <span className="font-semibold text-[13px] text-gray-900 dark:text-white truncate leading-tight">{user?.nombre || "Usuario"}</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate leading-tight capitalize">{user?.rol || ""}</span>
                     </div>
 
                     <button
