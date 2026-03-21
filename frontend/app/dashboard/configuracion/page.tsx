@@ -22,7 +22,6 @@ import {
 
 /* ── Roles config ── */
 const TABS_BY_ROLE: Record<string, string[]> = {
-    administrador: ["mi-cuenta", "empresa", "cuentas-bancarias", "usuarios", "auditoria"],
     admin: ["mi-cuenta", "empresa", "cuentas-bancarias", "usuarios", "auditoria"],
     contador: ["mi-cuenta", "empresa", "cuentas-bancarias", "usuarios", "auditoria"],
     gerente_ventas: ["mi-cuenta", "empresa", "cuentas-bancarias"],
@@ -40,7 +39,7 @@ const TAB_META: Record<string, { label: string; icon: React.ElementType }> = {
 };
 
 const ROLES_OPTIONS = [
-    { value: "administrador", label: "Administrador" },
+    { value: "admin", label: "Administrador" },
     { value: "contador", label: "Contador" },
     { value: "gerente_ventas", label: "Gerente de Ventas" },
     { value: "vendedor", label: "Vendedor" },
