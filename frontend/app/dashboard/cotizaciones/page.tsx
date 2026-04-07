@@ -480,7 +480,7 @@ export default function CotizacionesPage() {
             </div>
 
             {/* ── Table ── */}
-            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 shadow-sm overflow-hidden">
+            <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 shadow-sm">
                 {isLoading ? (
                     <div className="p-12 text-center">
                         <Loader2 className="h-6 w-6 animate-spin text-orange-600 mx-auto mb-3" />
@@ -508,7 +508,7 @@ export default function CotizacionesPage() {
                 ) : (
                     <>
                         {/* Header row */}
-                        <div className="grid grid-cols-18 gap-4 px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                        <div className="grid grid-cols-18 gap-4 px-4 py-2.5 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700 rounded-t-2xl">
                             <div className="col-span-3">Cotización</div>
                             <div className="col-span-3">Cliente</div>
                             <div className="col-span-2">Total</div>
@@ -530,7 +530,7 @@ export default function CotizacionesPage() {
                             return (
                                 <div
                                     key={cot.id}
-                                    className="grid grid-cols-18 gap-4 items-center px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors"
+                                    className="grid grid-cols-18 gap-4 items-center px-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors last:rounded-b-2xl"
                                 >
                                     {/* Cotización */}
                                     <div className="col-span-3 flex items-center gap-2">
