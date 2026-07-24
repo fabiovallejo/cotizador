@@ -1,0 +1,253 @@
+<!-- templates/facturas/factura.html -->
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica', Arial, sans-serif;
+            font-size: 11px;
+            color: #333;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20mm;
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 20px;
+        }
+
+        .logo {
+            max-width: 120px;
+            max-height: 80px;
+        }
+
+        .empresa-info {
+            text-align: right;
+            line-height: 1.6;
+        }
+
+        .empresa-info h1 {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .empresa-info p {
+            font-size: 10px;
+        }
+
+        /* DOCUMENTO */
+        .documento-type {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .doc-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        .doc-box h2 {
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .doc-box p {
+            font-size: 10px;
+        }
+
+        /* CLIENTE */
+        .cliente {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .cliente h3 {
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        /* TABLA */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th {
+            background-color: #000;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 10px;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            font-size: 10px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .amount {
+            text-align: right;
+        }
+
+        /* TOTALES */
+        .totales {
+            width: 50%;
+            margin-left: auto;
+            margin-bottom: 30px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+            font-size: 10px;
+        }
+
+        .total-row.total-final {
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 10px 0;
+        }
+
+        /* FOOTER */
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 9px;
+            color: #666;
+            text-align: center;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- HEADER -->
+        <div class="header">
+            {% if empresa.logo_url %}
+            <img src="{{ empresa.logo_url }}" alt="Logo" class="logo">
+            {% endif %}
+
+            <div class="empresa-info">
+                <h1>{{ empresa.razon_social }}</h1>
+                <p><strong>RUC:</strong> {{ empresa.ruc }}</p>
+                <p><strong>Dirección:</strong> {{ empresa.direccion }}</p>
+                <p><strong>Teléfono:</strong> {{ empresa.telefono }}</p>
+                <p><strong>Email:</strong> {{ empresa.email }}</p>
+            </div>
+        </div>
+
+        <!-- TIPO DE DOCUMENTO -->
+        <div class="documento-type">
+            <div class="doc-box">
+                <h2>FACTURA ELECTRÓNICA</h2>
+                <p><strong>Serie:</strong> {{ factura.numero_serie }}</p>
+                <p><strong>Número:</strong> {{ factura.numero_comprobante }}</p>
+            </div>
+            <div class="doc-box">
+                <h2>DETALLES</h2>
+                <p><strong>Fecha:</strong> {{ factura.fecha_emision.strftime('%d/%m/%Y') }}</p>
+                <p><strong>Vencimiento:</strong> {{ factura.fecha_vencimiento.strftime('%d/%m/%Y') if
+                    factura.fecha_vencimiento else '—' }}</p>
+            </div>
+        </div>
+
+        <!-- CLIENTE -->
+        <div class="cliente">
+            <h3>CLIENTE</h3>
+            <p><strong>{{ cliente.razon_social }}</strong></p>
+            <p>RUC: {{ cliente.numero_documento }}</p>
+            <p>Dirección: {{ cliente.direccion_completa }}</p>
+        </div>
+
+        <!-- ITEMS -->
+        <table>
+            <thead>
+                <tr>
+                    <th>ÍTEM</th>
+                    <th>DESCRIPCIÓN</th>
+                    <th>CANTIDAD</th>
+                    <th>P. UNITARIO</th>
+                    <th class="amount">SUBTOTAL</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ item.producto.nombre }}</td>
+                    <td class="amount">{{ item.cantidad }}</td>
+                    <td class="amount">{{ '%.2f'|format(item.precio_unitario) }}</td>
+                    <td class="amount">{{ '%.2f'|format(item.subtotal) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- TOTALES -->
+        <div class="totales">
+            <div class="total-row">
+                <span>SUBTOTAL:</span>
+                <span>{{ factura.moneda }} {{ '%.2f'|format(factura.subtotal) }}</span>
+            </div>
+            <div class="total-row">
+                <span>IGV (18%):</span>
+                <span>{{ factura.moneda }} {{ '%.2f'|format(factura.igv_total) }}</span>
+            </div>
+            <div class="total-row total-final">
+                <span>TOTAL:</span>
+                <span>{{ factura.moneda }} {{ '%.2f'|format(factura.total) }}</span>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <p>Documento generado automáticamente. Válido con firma digital y envío a SUNAT.</p>
+            <p>{{ factura.codigo_hash if factura.codigo_hash else 'Pendiente de envío a SUNAT' }}</p>
+        </div>
+
+    </div>
+</body>
+
+</html>

@@ -1,1026 +1,391 @@
-# 🧾 Sistema de Facturación Electrónica Multi-Tenant para Perú
+# Multi-Tenant B2B Quotation Platform
 
-**Versión:** 1.0.0 (En Desarrollo)  
-**Última Actualización:** Enero 2025  
-**Estado:** MVP Phase
+> A full-stack SaaS-oriented quotation management platform for businesses that need to manage customers, products, sales quotes, commercial reports and assisted workflows from a single workspace.
 
----
+![Status](https://img.shields.io/badge/status-active%20development-2E66F6)
+![Backend](https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi&logoColor=white)
+![Frontend](https://img.shields.io/badge/-Next_JS-black?style=for-the-badge&logoColor=white&logo=nextdotjs&color=000000)
+![Database](https://img.shields.io/badge/database-PostgreSQL-336791?logo=postgresql&logoColor=white)
+![AI](https://img.shields.io/badge/AI-OpenAI%20Agents%20SDK-412991?logo=openai&logoColor=white)
 
-## 📋 Tabla de Contenidos
+## Overview
 
-1. [Descripción General](#descripción-general)
-2. [Objetivos del Proyecto](#objetivos-del-proyecto)
-3. [Arquitectura](#arquitectura)
-4. [Stack Tecnológico](#stack-tecnológico)
-5. [Estructura del Proyecto](#estructura-del-proyecto)
-6. [Guía de Instalación](#guía-de-instalación)
-7. [Guía de Desarrollo](#guía-de-desarrollo)
-8. [Flujos Principales](#flujos-principales)
-9. [Especificaciones Técnicas](#especificaciones-técnicas)
-10. [Roadmap](#roadmap)
-11. [Configuración de Entorno](#configuración-de-entorno)
-12. [Deployment](#deployment)
-13. [Contribución](#contribución)
+This project is a quotation management platform designed around a multi-tenant SaaS model. It helps companies manage their commercial workflow through:
 
----
+- Customer and product management.
+- Quotation creation, editing, filtering and status tracking.
+- PDF generation for commercial proposals.
+- Executive dashboards and sales reports.
+- Excel templates and bulk import for customers and products.
+- Company configuration, logos and bank account information.
+- JWT-based authentication and role/permission foundations.
+- An experimental AI assistant that can query and operate on business data through application tools.
 
-## 📌 Descripción General
+The current product scope is focused on **quotations and commercial intelligence**. The data model and backend contain foundations for future invoicing and SUNAT-related workflows, but electronic invoicing is not presented as a finished feature of the current frontend experience.
 
-**Facturación SUNAT** es un sistema SaaS de **facturación electrónica multi-tenant** diseñado específicamente para empresas peruanas que requieren cumplimiento normativo con la SUNAT (Superintendencia Nacional de Aduanas y de Administración Tributaria).
+## Why this project
 
-### Características Principales
+The project was built to explore the problems that appear when a simple CRUD application grows into a business-oriented SaaS product:
 
-- ✅ **Multi-tenant con aislamiento total**: Cada cliente tiene su propio schema en PostgreSQL
-- ✅ **Integración directa con SUNAT**: Firma digital y envío automático de facturas
-- ✅ **Cotizaciones integradas**: Convertibles directamente a facturas
-- ✅ **Gestión de productos y clientes**: Catálogo y registro de clientes por empresa
-- ✅ **Notas de crédito/débito**: Comprobantes adicionales según normativa
-- ✅ **Backups por cliente**: Seguridad y cumplimiento GDPR/normativa local
-- ✅ **Reintentos automáticos**: Si SUNAT falla, el sistema reintenta
-- ✅ **Dashboard en tiempo real**: Monitoreo de estado de facturas
-- ✅ **API REST completa**: Para integraciones de terceros
+- How can each company keep its data isolated inside the same PostgreSQL database?
+- How can sales teams manage the complete lifecycle of a quote instead of only creating records?
+- How can reports turn quote history into useful commercial decisions?
+- How can an AI assistant work with real application data without bypassing authentication and tenant context?
+- How can the domain evolve toward invoicing without forcing the first version to become an oversized monolith?
 
-### ¿A Quién Va Dirigido?
+## Current capabilities
 
-- Pequeños negocios (tiendas, restaurantes, consultorías)
-- Medianas empresas (constructoras, agencias, distribuidoras)
-- Cualquier empresa en Perú que deba facturar electrónicamente
+### Quotation workflow
 
----
+- Create quotations from existing customers and products.
+- Apply quantities, prices, discounts, IGV and currency information.
+- Support PEN and USD amounts with an exchange-rate service integration.
+- Configure validity period, payment terms, delivery terms and commercial notes.
+- Track quote states such as `borrador`, `enviada`, `aceptada`, `rechazada` and `convertida`.
+- Edit or delete draft quotations.
+- Download a formatted PDF proposal generated from a Jinja2/HTML template.
+- Keep the relationship between a quotation and a future invoice document in the domain model.
 
-## 🎯 Objetivos del Proyecto
+### Dashboard and reporting
 
-### Objetivos Primarios
+The dashboard is designed as an executive view of the sales pipeline and includes:
 
-1. **Cumplimiento SUNAT**
-   - Generar facturas válidas según estándares UBL 2.1
-   - Firma digital automática con certificados X.509
-   - Envío confiable a servidores de SUNAT
-   - Almacenamiento de comprobantes de recepción (CDR)
+- Quotation volume and variation.
+- Conversion rate.
+- Revenue and average ticket in PEN or USD.
+- Pending quotations that require follow-up.
+- Daily quotation series.
+- Top-performing products.
+- Products with low conversion or lost commercial value.
+- Inactive customers.
+- Seller performance and conversion rates.
 
-2. **Facilidad de Uso**
-   - Interfaz intuitiva sin requerer conocimiento técnico
-   - Proceso de facturación en menos de 3 clics
-   - Visualización clara del estado de trámite
+Dedicated reports are available for:
 
-3. **Seguridad y Confiabilidad**
-   - Aislamiento total de datos entre clientes
-   - Encriptación de información sensible
-   - Auditoría completa de operaciones
-   - Backups automáticos por cliente
+- Quotation performance and commercial alerts.
+- Top products by quotation revenue and conversion.
+- Customer segmentation, including VIP/regular classification and inactivity indicators.
 
-4. **Escalabilidad**
-   - Soportar miles de clientes simultáneamente
-   - Manejo de millones de facturas
-   - Arquitectura preparada para crecer
+### AI assistant proof of concept
 
-5. **Integración**
-   - API REST para integración con otros sistemas
-   - Webhooks para eventos
-   - Exportación de datos en múltiples formatos
+The application includes an in-product chatbot powered by the OpenAI Agents SDK. The assistant is connected to a tool layer that can work with the business domain, including:
 
-### Objetivos Secundarios
+- Searching, creating and updating customers.
+- Searching, creating and updating products.
+- Searching, reading and updating quotations.
+- Changing quotation status.
+- Reading dashboard and report data.
+- Filtering products by price.
 
-- Reducir carga operativa de contabilidad
-- Automatizar reconciliación fiscal
-- Proporcionar reportes contables
-- Mejorar flujo de caja con informes
+The assistant follows an explicit confirmation flow before creating a quotation draft. Its context includes the authenticated user, company and tenant schema so that the assistant can operate within the current company boundary.
 
----
+> This chatbot is an experimental feature for demonstrating tool calling and domain integration. It should not be treated as an autonomous production agent without additional evaluation, observability, rate limiting and security hardening.
 
-## 🏗️ Arquitectura
+### Bulk import
 
-### Enfoque Multi-Tenant (Schema-per-Tenant)
+Administrators can download and upload Excel templates for:
 
-```
-PostgreSQL - Una BD única, múltiples schemas aislados
+- Customers.
+- Products.
 
-├─ Schema: public (COMPARTIDO)
-│  ├─ Tabla: empresas
-│  │  └─ Contiene: RUC, razón social, schema asignado, certificado
-│  │
-│  └─ Tabla: usuarios
-│     └─ Contiene: email, contraseña, rol, empresa_id (FK)
-│
-├─ Schema: empresa_1 (AISLADO)
-│  ├─ productos
-│  ├─ clientes
-│  ├─ cotizaciones
-│  ├─ items_cotizacion
-│  ├─ facturas
-│  ├─ items_factura
-│  ├─ secuencias (para numeración)
-│  ├─ notas_comprobante
-│  └─ audit_logs
-│
-├─ Schema: empresa_2 (AISLADO)
-│  └─ (misma estructura que empresa_1)
-│
-└─ Schema: empresa_N (AISLADO)
-   └─ ...
-```
+The import service validates required fields, detects duplicates inside the file and against the database, reports row-level errors and inserts valid records in batches.
 
-### ¿Por qué Schema-per-Tenant?
+### Company and account management
 
-| Criterio | Row-Level | **Schema-per-Tenant** | DB-per-Tenant |
-|----------|-----------|----------------------|---------------|
-| Aislamiento | ⚠️ En código | ✅ En BD | ✅ En BD |
-| Costo | $ | $$ | $$$$ |
-| Backup | Tedioso | ✅ Trivial | ✅ Trivial |
-| Escalabilidad | < 100 | < 10k | < 10k |
-| Complejidad | Baja | **Media** | Alta |
+The backend includes flows for:
 
-### Flujo de Datos (Alto Nivel)
+- Company onboarding and tenant provisioning.
+- User accounts and roles.
+- Company profile configuration.
+- Company logo upload.
+- Bank account management for commercial documents.
+- Password reset and password change flows.
+- Global and tenant-level audit records.
 
-```
-Navegador (Frontend)
-    ↓ HTTPS
-Frontend Next.js (3000)
-    ↓
-CORS allowed (localhost:8000)
-    ↓
-FastAPI Backend (8000)
-    ├─ JWT validation
-    ├─ Extrae empresa_id del token
-    ├─ Set search_path en PostgreSQL al schema correcto
-    ├─ Query en schema de empresa específica
-    └─ ✅ Devuelve datos isolados
-    
-Backend encola tasks Celery para:
-    ├─ Firma digital de facturas
-    ├─ Envío a SUNAT
-    └─ Reintentos automáticos (Redis + Celery Beat)
+## Architecture
+
+```mermaid
+flowchart LR
+    UI["Next.js frontend<br/>React + TypeScript + Tailwind CSS"] --> API["FastAPI REST API"]
+    API --> AUTH["JWT authentication<br/>roles and tenant context"]
+    API --> SERVICES["Application services<br/>validation and domain workflows"]
+    SERVICES --> DB[(PostgreSQL)]
+    DB --> PUBLIC["public schema<br/>companies, users, global config"]
+    DB --> TENANTS["tenant schemas<br/>customers, products, quotes, reports"]
+    SERVICES --> PDF["Jinja2 + WeasyPrint<br/>PDF documents"]
+    SERVICES --> FX["SUNAT exchange-rate service"]
+    API --> AI[OpenAI Agents SDK]
+    AI --> TOOLS["Domain tools<br/>CRUD + reports + dashboard"]
+    API --> CACHE[(Redis)]
+    CACHE --> WORKERS[Celery workers / Beat]
 ```
 
-### Flujo de Facturación (Detallado)
+### Schema-per-tenant data isolation
 
-```
-1. Usuario crea factura en frontend
-   POST /api/facturas
-   {cliente_id, items, total}
-   
-   ↓
-   
-2. FastAPI valida y crea registro
-   - Estado: "borrador"
-   - Encola task Celery: "firmar_y_enviar_sunat"
-   - Devuelve inmediatamente: {factura_id, estado}
-   
-   ↓
-   
-3. Celery Worker (en background)
-   ├─ Obtiene factura de BD
-   ├─ Genera XML en formato UBL 2.1 (estándar SUNAT)
-   ├─ Carga certificado digital de empresa
-   ├─ Firma XML criptográficamente
-   ├─ Conecta a servidor SUNAT vía WebService SOAP
-   ├─ Recibe respuesta:
-   │  ├─ ACEPTADA: estado_sunat="aceptada", número_cdr guardado
-   │  ├─ RECHAZADA: estado_sunat="rechazada", errores registrados
-   │  └─ ERROR CONEXIÓN: reintenta en 30 min (exponential backoff)
-   └─ Actualiza BD con respuesta
-   
-   ↓
-   
-4. Usuario puede consultar estado
-   GET /api/facturas/{id}/estado-sunat
-   ← {estado_sunat: "aceptada", numero_cdr: "..."}
-   
-   ↓
-   
-5. Generar PDF con comprobante
-   GET /api/facturas/{id}/pdf
-   ← PDF descargable con sello SUNAT
+The platform uses a single PostgreSQL database with a schema-per-tenant strategy:
+
+```text
+public
+├── empresas
+├── usuarios
+├── configuracion_empresa
+├── cuentas_bancarias
+└── audit_global
+
+empresa_<tenant>
+├── clientes
+├── productos
+├── cotizaciones
+├── items_cotizacion
+├── facturas (domain foundation)
+├── items_factura (domain foundation)
+├── secuencias (domain foundation)
+├── notas_comprobante (domain foundation)
+└── audit_logs
 ```
 
----
+When a company is provisioned, the backend creates its PostgreSQL schema and initializes the tenant tables. Tenant-aware dependencies set the appropriate `search_path` before running queries, while shared metadata remains in the `public` schema.
 
-## 🛠️ Stack Tecnológico
+This approach provides logical isolation between companies while keeping the operational model simpler than maintaining a separate database per customer.
+
+## Technology stack
 
 ### Backend
 
-```
-Python 3.11+
-├─ FastAPI 0.104.1 (Framework web async)
-│  └─ Validación automática con Pydantic
-│  └─ Documentación OpenAPI auto-generada
-│
-├─ SQLAlchemy 2.0.23 (ORM)
-│  └─ Manejo multi-tenant con search_path
-│  └─ Type hints completos
-│
-├─ PostgreSQL 16 (Base de datos)
-│  └─ Schema-per-tenant
-│  └─ JSONB para respuestas SUNAT
-│  └─ Índices optimizados
-│
-├─ Celery 5.3.4 (Task queue distribuida)
-│  └─ Firma digital de facturas
-│  └─ Envío a SUNAT
-│  └─ Reintentos con backoff exponencial
-│
-├─ Redis 7 (Cache + Broker)
-│  └─ Broker para Celery
-│  └─ Cache de sesiones
-│  └─ Rate limiting
-│
-├─ Cryptography 41.0.7 (Firma digital)
-│  └─ Manejo de certificados X.509
-│  └─ Firma XAdES SUNAT
-│
-├─ Zeep 4.2.1 (SOAP client)
-│  └─ Conexión con WebService SUNAT
-│
-└─ ReportLab 4.0.7 (Generación de PDFs)
-   └─ PDFs de facturas
-   └─ Plantillas personalizables
-```
+- Python 3.11.
+- FastAPI.
+- Pydantic Settings and Pydantic schemas.
+- SQLAlchemy 2.0 with asynchronous sessions.
+- PostgreSQL and `asyncpg`.
+- JWT authentication with `python-jose`.
+- Password hashing with `bcrypt` through Passlib.
+- Jinja2 and WeasyPrint for server-side PDF generation.
+- `openpyxl` for Excel templates and bulk imports.
+- Redis, Celery and Flower for background-task infrastructure.
+- OpenAI Agents SDK for the experimental assistant.
 
 ### Frontend
 
-```
-Node.js 20+
-├─ Next.js 15 (Framework React)
-│  └─ App Router (última arquitectura)
-│  └─ Server Components
-│  └─ TypeScript nativo
-│
-├─ React 19 (UI Library)
-│  └─ Hooks custom para multi-tenant
-│  └─ Context API para estado global
-│
-├─ TypeScript 5.3 (Type Safety)
-│  └─ Types para toda la aplicación
-│
-├─ Tailwind CSS (Styling)
-│  └─ Utilities-first
-│  └─ Responsive design
-│
-├─ Axios (HTTP Client)
-│  └─ Interceptores para auth
-│  └─ Error handling
-│
-├─ Zustand (State Management)
-│  └─ Alternativa a Redux (más simple)
-│
-├─ React Hook Form (Formularios)
-│  └─ Validación con Zod
-│  └─ Sin re-renders innecesarios
-│
-└─ Shadcn/ui (Componentes UI)
-   └─ Tabla de productos
-   └─ Diálogos
-   └─ Formularios
-```
+- Next.js 16 with the App Router.
+- React 19.
+- TypeScript.
+- Tailwind CSS.
+- Zustand for client-side state.
+- React Hook Form and Zod for form handling and validation.
+- Recharts for dashboard visualizations.
+- Typed fetch-based API integration.
+- Lucide React for interface icons.
 
-### DevOps & Infrastructure
+### Infrastructure and delivery
 
-```
-Docker 24+
-├─ Contenedores para todos los servicios
-├─ Docker Compose para desarrollo
-└─ Orquestación en producción
+- Docker and Docker Compose.
+- PostgreSQL 16 in the root Compose stack.
+- Redis 7.
+- Separate backend and frontend containers.
+- FastAPI OpenAPI documentation.
 
-Git / GitHub
-├─ Control de versiones
-├─ CI/CD (GitHub Actions)
-└─ Code review
+## Repository structure
 
-Deployment
-├─ Backend: DigitalOcean / AWS / Railway
-├─ Frontend: Vercel (recomendado para Next.js)
-├─ Database: AWS RDS / DigitalOcean Managed
-└─ Redis: DigitalOcean / AWS ElastiCache
+```text
+.
+├── backend/
+│   ├── app/
+│   │   ├── api/              # HTTP route modules by business area
+│   │   ├── ai/               # Agent, context and tool definitions
+│   │   ├── core/             # Settings, security, dependencies and roles
+│   │   ├── db/               # Database bootstrap scripts
+│   │   ├── models/            # Shared and tenant SQLAlchemy models
+│   │   ├── schemas/           # Pydantic request/response schemas
+│   │   ├── services/          # Application and domain-oriented services
+│   │   ├── tasks/             # Celery configuration and tasks
+│   │   └── templates/         # HTML templates used for PDFs
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/
+│   ├── app/                   # Next.js routes and dashboard screens
+│   ├── components/            # Shared UI, layout and chatbot components
+│   ├── context/               # Authentication context
+│   ├── hooks/                 # Reusable client hooks
+│   ├── lib/                   # API client and shared utilities
+│   ├── services/              # Typed frontend API services
+│   ├── types/                 # Domain and API TypeScript types
+│   └── Dockerfile
+├── scripts/                   # Project scripts
+├── templates/                 # Shared document styles
+├── docker-compose.yml
+└── .env.example
 ```
 
----
+## Getting started with Docker
 
-## 📁 Estructura del Proyecto
+### Prerequisites
 
-```
-facturacion-saas/
-│
-├─ 📂 backend/
-│  ├─ 📂 app/
-│  │  ├─ 📂 core/
-│  │  │  ├─ config.py           # Variables de entorno
-│  │  │  ├─ database.py         # Conexión PostgreSQL
-│  │  │  ├─ security.py         # JWT, hashing de passwords
-│  │  │  └─ middleware.py       # Tenant middleware
-│  │  │
-│  │  ├─ 📂 models/
-│  │  │  ├─ shared.py           # Modelos públicos (Empresa, Usuario)
-│  │  │  └─ tenant.py           # Modelos por tenant (Producto, Cliente, etc)
-│  │  │
-│  │  ├─ 📂 schemas/
-│  │  │  ├─ cliente_schema.py    # Pydantic schemas (validación)
-│  │  │  ├─ producto_schema.py
-│  │  │  ├─ cotizacion_schema.py
-│  │  │  ├─ factura_schema.py
-│  │  │  └─ sunat_schema.py
-│  │  │
-│  │  ├─ 📂 repositories/
-│  │  │  ├─ base_repository.py   # Base class con multi-tenant
-│  │  │  ├─ cliente_repository.py
-│  │  │  ├─ producto_repository.py
-│  │  │  ├─ cotizacion_repository.py
-│  │  │  └─ factura_repository.py
-│  │  │
-│  │  ├─ 📂 services/
-│  │  │  ├─ cliente_service.py   # Lógica de negocio
-│  │  │  ├─ producto_service.py
-│  │  │  ├─ cotizacion_service.py
-│  │  │  ├─ factura_service.py
-│  │  │  ├─ sunat_service.py     # 🔴 CRÍTICO: Firma digital + envío
-│  │  │  ├─ signature_service.py # Manejo de certificados
-│  │  │  └─ pdf_service.py       # Generación de PDFs
-│  │  │
-│  │  ├─ 📂 routes/
-│  │  │  ├─ auth.py              # POST /auth/login, /auth/register
-│  │  │  ├─ clientes.py          # CRUD de clientes
-│  │  │  ├─ productos.py         # CRUD de productos
-│  │  │  ├─ cotizaciones.py      # CRUD de cotizaciones
-│  │  │  ├─ facturas.py          # CRUD de facturas + envío SUNAT
-│  │  │  ├─ empresas.py          # Gestión de empresas
-│  │  │  └─ health.py            # Health check
-│  │  │
-│  │  ├─ 📂 tasks/
-│  │  │  ├─ __init__.py          # Configuración de Celery
-│  │  │  ├─ factura_tasks.py     # 🔴 CRÍTICO: Tasks de SUNAT
-│  │  │  └─ backup_tasks.py      # Tareas de backup
-│  │  │
-│  │  ├─ 📂 db/
-│  │  │  ├─ tenant_manager.py    # Creación de schemas
-│  │  │  ├─ init.sql             # Script inicial de BD
-│  │  │  └─ migrations/          # Alembic migrations
-│  │  │
-│  │  ├─ 📂 utils/
-│  │  │  ├─ logger.py            # Logging
-│  │  │  ├─ validators.py        # Validadores custom
-│  │  │  ├─ sunat_constants.py   # Códigos SUNAT
-│  │  │  └─ helpers.py           # Funciones útiles
-│  │  │
-│  │  ├─ main.py                 # Punto de entrada FastAPI
-│  │  └─ __init__.py
-│  │
-│  ├─ 📂 tests/
-│  │  ├─ test_auth.py            # Tests de autenticación
-│  │  ├─ test_clientes.py        # Tests de clientes
-│  │  ├─ test_facturas.py        # Tests de facturas
-│  │  └─ test_sunat.py           # Tests de integración SUNAT
-│  │
-│  ├─ requirements.txt            # Dependencias Python
-│  ├─ .env                        # Variables de entorno (git ignored)
-│  ├─ Dockerfile                  # Imagen Docker
-│  ├─ docker-entrypoint.sh        # Script de inicio
-│  └─ README.md                   # Documentación backend
-│
-│
-├─ 📂 frontend/
-│  ├─ 📂 app/
-│  │  ├─ layout.tsx               # Layout global
-│  │  ├─ page.tsx                 # Home page
-│  │  │
-│  │  ├─ 📂 auth/
-│  │  │  ├─ login/
-│  │  │  │  └─ page.tsx           # Página de login
-│  │  │  └─ register/
-│  │  │     └─ page.tsx           # Página de registro
-│  │  │
-│  │  ├─ 📂 dashboard/
-│  │  │  ├─ page.tsx              # Dashboard general
-│  │  │  ├─ layout.tsx
-│  │  │  │
-│  │  │  └─ 📂 [empresa_id]/
-│  │  │     ├─ page.tsx           # Dashboard de empresa
-│  │  │     │
-│  │  │     ├─ 📂 productos/
-│  │  │     │  ├─ page.tsx        # Lista de productos
-│  │  │     │  ├─ new/page.tsx    # Crear producto
-│  │  │     │  └─ [id]/page.tsx   # Editar producto
-│  │  │     │
-│  │  │     ├─ 📂 clientes/
-│  │  │     │  ├─ page.tsx
-│  │  │     │  ├─ new/page.tsx
-│  │  │     │  └─ [id]/page.tsx
-│  │  │     │
-│  │  │     ├─ 📂 cotizaciones/
-│  │  │     │  ├─ page.tsx
-│  │  │     │  ├─ new/page.tsx
-│  │  │     │  └─ [id]/page.tsx
-│  │  │     │
-│  │  │     └─ 📂 facturas/
-│  │  │        ├─ page.tsx
-│  │  │        ├─ new/page.tsx
-│  │  │        └─ [id]/page.tsx
-│  │  │
-│  │  └─ 📂 api/ (No necesario, hay FastAPI)
-│  │
-│  ├─ 📂 components/
-│  │  ├─ 📂 layout/
-│  │  │  ├─ Header.tsx
-│  │  │  ├─ Sidebar.tsx
-│  │  │  └─ Footer.tsx
-│  │  │
-│  │  ├─ 📂 forms/
-│  │  │  ├─ ClienteForm.tsx
-│  │  │  ├─ ProductoForm.tsx
-│  │  │  ├─ CotizacionForm.tsx
-│  │  │  └─ FacturaForm.tsx
-│  │  │
-│  │  ├─ 📂 tables/
-│  │  │  ├─ ClientesTable.tsx
-│  │  │  ├─ ProductosTable.tsx
-│  │  │  └─ FacturasTable.tsx
-│  │  │
-│  │  ├─ 📂 dialogs/
-│  │  │  ├─ ConfirmDialog.tsx
-│  │  │  └─ EstadoFacturaDialog.tsx
-│  │  │
-│  │  └─ 📂 ui/ (shadcn/ui components)
-│  │
-│  ├─ 📂 lib/
-│  │  ├─ api.ts                   # Cliente HTTP (Axios)
-│  │  ├─ store.ts                 # Zustand store global
-│  │  ├─ constants.ts             # Constantes de la app
-│  │  └─ utils.ts                 # Funciones de utilidad
-│  │
-│  ├─ 📂 hooks/
-│  │  ├─ useAuth.ts               # Hook de autenticación
-│  │  ├─ useFetch.ts              # Hook para fetch genérico
-│  │  ├─ useTenant.ts             # Hook para obtener empresa_id
-│  │  └─ useForm.ts               # Hook para formularios
-│  │
-│  ├─ 📂 types/
-│  │  ├─ index.ts                 # Types globales
-│  │  ├─ sunat.ts                 # Types de SUNAT
-│  │  └─ api.ts                   # Types de API
-│  │
-│  ├─ 📂 context/
-│  │  └─ AuthContext.tsx          # Context de autenticación
-│  │
-│  ├─ 📂 styles/
-│  │  ├─ globals.css
-│  │  └─ variables.css
-│  │
-│  ├─ 📂 public/
-│  │  ├─ logo.png
-│  │  └─ favicon.ico
-│  │
-│  ├─ package.json
-│  ├─ tsconfig.json
-│  ├─ next.config.js
-│  ├─ tailwind.config.ts
-│  ├─ .env.local (git ignored)
-│  ├─ Dockerfile
-│  └─ README.md
-│
-│
-├─ 📂 docs/
-│  ├─ ARQUITECTURA.md            # Detalles de arquitectura
-│  ├─ API.md                     # Documentación de endpoints
-│  ├─ SUNAT_INTEGRATION.md       # Guía de integración SUNAT
-│  ├─ DATABASE.md                # Schema de BD
-│  ├─ DEPLOYMENT.md              # Guía de deployment
-│  └─ TROUBLESHOOTING.md         # Solución de problemas
-│
-├─ 📂 scripts/
-│  ├─ setup.sh                   # Script de instalación inicial
-│  ├─ test.sh                    # Ejecutar tests
-│  ├─ migrate.sh                 # Ejecutar migraciones
-│  └─ backup_db.sh               # Backup de BD
-│
-├─ docker-compose.yml            # Stack completo (Dev)
-├─ docker-compose.prod.yml       # Stack para producción
-├─ .env.example                  # Template de variables
-├─ .gitignore                    # Git ignore
-├─ README.md                     # Este archivo
-└─ LICENSE                       # Licencia MIT
-```
+- Docker Desktop with Docker Compose.
+- Git.
+- An OpenAI API key if you want to use the chatbot.
 
----
-
-## 🚀 Guía de Instalación
-
-### Requisitos Previos
-
-- **Python:** 3.11 o superior
-- **Node.js:** 20 o superior
-- **PostgreSQL:** 16
-- **Redis:** 7
-- **Git:** Control de versiones
-
-### Instalación Rápida (Con Docker)
+### 1. Clone the repository
 
 ```bash
-# 1. Clonar repositorio
-git clone https://github.com/tu-usuario/facturacion-saas.git
-cd facturacion-saas
+git clone https://github.com/fabiovallejo/cotizador.git
+cd cotizador
+```
 
-# 2. Crear archivo de entorno
+### 2. Configure the environment
+
+Copy the example file and review the values before starting the stack:
+
+```bash
 cp .env.example .env
-# Editar .env con tus valores
-
-# 3. Iniciar con Docker Compose
-docker-compose up -d
-
-# 4. Verificar que todo está running
-docker-compose ps
-
-# 5. Acceder
-# - Frontend: http://localhost:3000
-# - Backend: http://localhost:8000
-# - Docs API: http://localhost:8000/docs
-# - Flower Celery: http://localhost:5555
 ```
 
-### Instalación Manual (Desarrollo Local)
+For PowerShell:
 
-Ver [INSTALACIÓN_COMPLETA.md](./docs/INSTALACION_COMPLETA.md)
+```powershell
+Copy-Item .env.example .env
+```
 
----
+For the AI assistant, provide an `OPENAI_API_KEY` to the backend environment. Keep secrets out of Git and never use the development defaults in a public deployment.
 
-## 💻 Guía de Desarrollo
+The backend and frontend Docker contexts exclude local `.env` files, dependency folders, build output, certificates, and private keys. The frontend receives `NEXT_PUBLIC_API_URL` as a public build argument; set it in the root `.env` when the browser must reach an API host other than `http://localhost:8000/api`.
 
-### Setup Inicial
+At runtime, Compose loads `backend/.env` when present and lets the root `.env` override it. These files are runtime configuration only and are excluded from the Docker images.
+
+The backend uses SQLAlchemy's asynchronous engine. If you provide `DATABASE_URL` manually, use the `postgresql+asyncpg://...` scheme rather than the synchronous `postgresql://...` scheme.
+
+### 3. Start the services
 
 ```bash
-# Backend
-cd backend
-python3.11 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Frontend
-cd frontend
-npm install
+docker compose up --build -d
 ```
 
-### Ejecutar en Desarrollo
+Run Compose commands from the repository root (`E:\facturador-saas`). The `backend/docker-compose.yml` file is a legacy backend-only configuration and is not part of the supported local workflow.
 
-**Terminal 1: Backend**
-```bash
-cd backend
-source venv/bin/activate
-python -m uvicorn app.main:app --reload
-```
+The root Compose stack starts:
 
-**Terminal 2: Celery Worker**
-```bash
-cd backend
-source venv/bin/activate
-celery -A app.tasks worker --loglevel=info
-```
+| Service | URL / purpose |
+| --- | --- |
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000 |
+| OpenAPI docs | http://localhost:8000/docs |
+| Health check | http://localhost:8000/health |
+| PostgreSQL | localhost:5432 |
+| Redis | localhost:6379 |
+| Flower | http://localhost:5555 |
 
-**Terminal 3: Frontend**
-```bash
-cd frontend
-npm run dev
-```
+### 4. Initialize the database
 
-### Comandos Útiles
+You do not need to create a PostgreSQL database manually. The `db` service creates the database configured by `DB_NAME` when the Postgres volume is initialized. The default name is `facturacion_db`; it is not `facturacion` unless you change `DB_NAME` in the root `.env` before the first startup.
+
+The PostgreSQL database managed by Docker is separate from any PostgreSQL or pgAdmin installation running directly on Windows. If the local PostgreSQL service is using port `5432`, stop it before starting the Docker stack, or change the host-side `DB_PORT`. Deleting a database from pgAdmin does not delete the Docker Postgres volume.
+
+The backend does not run the schema bootstrap automatically on application startup. After the containers are healthy, run this command once:
 
 ```bash
-# Tests
-pytest backend/tests/
-
-# Linting
-black backend/
-flake8 backend/
-isort backend/
-
-# Migraciones BD
-alembic upgrade head
-alembic downgrade -1
-
-# Backup BD
-pg_dump -U facturacion facturacion_db > backup.sql
-
-# Crear nuevo schema para empresa
-python3 << 'EOF'
-from app.db.tenant_manager import TenantManager
-tm = TenantManager("postgresql://...")
-tm.crear_schema_empresa(empresa_id=5, schema_name="empresa_5")
-EOF
+docker compose exec backend python -c "from app.db.init_db import crear_bd_completa; crear_bd_completa()"
 ```
 
-### Convenciones de Código
+This creates the shared tables in `public`, the initial `empresa_1` tenant schema, indexes, constraints, and document sequences. The command is idempotent for the existing structures.
 
-**Backend (Python)**
-- Usar `snake_case` para variables y funciones
-- Usar `CamelCase` para clases
-- Type hints en todas las funciones
-- Docstrings en clase y funciones públicas
+### 5. Create the first user
 
-**Frontend (TypeScript)**
-- Usar `PascalCase` para componentes
-- Usar `camelCase` para variables y funciones
-- Interfaces para props de componentes
-- Comentarios en lógica compleja
+There is no demo seed in the repository. The bootstrap creates database structures and document sequences, but no companies, users, products, customers, or login credentials. The `empresa_1` schema is only a structural example.
 
----
+Set `ADMIN_SECRET_KEY` in the root `.env`, then create the first company and administrator through the onboarding endpoint:
 
-## 🔄 Flujos Principales
-
-### 1. Registro de Nueva Empresa
-
+```http
+POST /api/admin/onboard-company
 ```
-POST /api/empresas/register
+
+The request body must include the company information and the credentials that will be used for login. The following is an example only; these credentials are not pre-created:
+
+```json
 {
   "ruc": "20123456789",
-  "razon_social": "Mi Empresa S.A.C",
-  "email_admin": "admin@empresa.com",
-  "password": "SecurePassword123!"
+  "razon_social": "Empresa Demo S.A.C.",
+  "direccion": "Av. Principal 123",
+  "owner_email": "admin@example.com",
+  "owner_nombre": "Admin",
+  "owner_apellido": "Demo",
+  "owner_password": "ChangeMe123"
 }
-
-↓
-
-Backend:
-├─ Valida RUC (formato Perú)
-├─ Crea entrada en public.empresas
-├─ Asigna schema_name: "empresa_1"
-├─ Encola task: crear_schema_empresa
-│  ├─ CREATE SCHEMA empresa_1
-│  ├─ CREATE todas las tablas
-│  ├─ CREATE índices
-│  └─ INSERT secuencias iniciales
-├─ Crea usuario admin en public.usuarios
-└─ Devuelve token JWT
-
-Frontend:
-└─ Redirige a dashboard
 ```
 
-### 2. Crear y Enviar Factura a SUNAT
-
-```
-POST /api/facturas
-{
-  "cliente_id": 5,
-  "items": [
-    {"producto_id": 1, "cantidad": 2, "precio_unitario": 100}
-  ],
-  "total": 236  (200 + 36 IGV)
-}
-
-↓
-
-Backend (FastAPI):
-├─ Valida datos
-├─ Crea factura con estado: "borrador"
-├─ Asigna número_serie: "F001", número_comprobante: "000001"
-├─ Encola task Celery: firmar_y_enviar_sunat
-└─ Devuelve: {"factura_id": 1, "estado": "pendiente_firma"}
-
-↓
-
-Celery Worker (en background):
-├─ Obtiene factura de BD en schema correcto
-├─ Genera XML UBL 2.1:
-│  ├─ Datos de empresa (RUC, razón social)
-│  ├─ Datos de cliente (RUC/DNI)
-│  ├─ Ítems con descripciones y montos
-│  └─ Cálculos de IGV
-├─ Carga certificado digital de empresa
-├─ Firma XML criptográficamente (XAdES)
-├─ Conecta a SUNAT vía WebService SOAP
-├─ Envía: SendBill(fileName, xmlContent)
-└─ Recibe respuesta
-
-Si ACEPTADA:
-├─ estado_sunat = "aceptada"
-├─ numero_cdr = "123456789"
-├─ respuesta_sunat = {resultado: "Aceptado", ...}
-└─ Guarda en BD
-
-Si RECHAZADA:
-├─ estado_sunat = "rechazada"
-├─ respuesta_sunat = {errores: [...]}
-└─ Notifica al usuario en frontend
-
-Si ERROR DE CONEXIÓN:
-├─ intentos_sunat += 1
-├─ proximo_intento_sunat = now + 30 min
-├─ Celery reintentará automáticamente
-└─ Usuario ve estado: "pendiente_envío"
-
-↓
-
-Usuario en Frontend:
-├─ Hace polling: GET /api/facturas/1/estado-sunat
-├─ Ve estado actualizado
-└─ Si aceptada, puede descargar PDF
-```
-
-### 3. Convertir Cotización a Factura
-
-```
-POST /api/cotizaciones/5/convertir-a-factura
-
-↓
-
-Backend:
-├─ Valida que cotización existe y estado es "aceptada"
-├─ Copia datos de cotización
-├─ Crea factura con mismo total y items
-├─ Marca cotización como "convertida"
-├─ Factura lista para enviar a SUNAT
-└─ Devuelve factura_id
-
-↓
-
-Usuario en Frontend:
-└─ Redirige a editar factura (puede ajustar si necesita)
-└─ Botón "Enviar a SUNAT"
-└─ Sigue flujo de envío
-```
-
----
-
-## 🔧 Especificaciones Técnicas
-
-### Seguridad Multi-Tenant
-
-1. **JWT Token incluye:**
-   ```json
-   {
-     "sub": 1,              // usuario_id
-     "empresa_id": 1,       // empresa del usuario
-     "rol": "admin",
-     "exp": 1234567890
-   }
-   ```
-
-2. **Middleware en cada request:**
-   - Valida JWT
-   - Extrae empresa_id
-   - Obtiene schema name de BD
-   - Ejecuta: `SET search_path TO empresa_1, public`
-   - Query solo ve datos de empresa_1
-
-3. **Base de datos:**
-   - Imposible acceder a otra empresa sin cambiar el schema
-   - Cada query está automáticamente en el schema correcto
-
-### Numeración de Facturas (SUNAT)
-
-```
-Formato: [SERIE]-[NÚMERO]
-Ejemplo: F001-000001
-
-- SERIE: Definida por empresa (F001, F002, B001, etc)
-- NÚMERO: Secuencia 000001 a 999999
-
-Tabla secuencias:
-├─ tipo_documento: "01" (Factura), "03" (Boleta)
-├─ serie: "F001", "F002"
-└─ proximo_numero: incrementa cada vez
-
-SUNAT requiere:
-✅ Numeración consecutiva (no puede faltar números)
-✅ No puede repetir número en misma serie
-✅ Máximo 999999 por serie (después cambiar serie)
-```
-
-### Integración SUNAT
-
-**Ambiente Beta (Testing):**
-```
-URL: https://e-beta.sunat.gob.pe/ords/f?p=730:3
-Usuario SOL: Tu RUC (sin dígito verificador)
-Contraseña: Tu contraseña SOL
-```
-
-**Ambiente Producción:**
-```
-URL: https://www.sunat.gob.pe/ords/f?p=730:3
-Certificado digital: Requerido (no usuario/contraseña)
-```
-
-**Formato de Factura (XML UBL 2.1):**
-- Namespace: `urn:oasis:names:specification:ubl:schema:xsd:Invoice-2`
-- Versión: 2.1
-- Caracteres especiales: UTF-8
-- Firma: XAdES
-
-### Códigos SUNAT Importantes
-
-```
-Tipo Documento:
-├─ 01 = Factura
-├─ 03 = Boleta
-├─ 07 = Nota de Crédito
-└─ 08 = Nota de Débito
-
-Tipo de Cliente:
-├─ RUC = Persona Jurídica
-├─ DNI = Persona Natural
-└─ OTROS = Domiciliados en el Exterior
-
-Códigos de Rechazo (muestras):
-├─ 01 = Error en RUC
-├─ 02 = Error en DNI
-├─ 1200 = Total de operación inválido
-└─ Ver documentación SUNAT para lista completa
-```
-
----
-
-## 📈 Roadmap
-
-### Fase 1: MVP (Enero-Febrero 2025)
-- [x] Arquitectura multi-tenant
-- [x] CRUD de productos, clientes, cotizaciones
-- [ ] Emisión básica de facturas
-- [ ] Integración SUNAT (firma digital)
-- [ ] Autenticación JWT
-- [ ] Frontend básico
-
-### Fase 2: Features (Marzo-Abril 2025)
-- [ ] Notas de crédito/débito
-- [ ] Plantillas personalizables
-- [ ] Reportes de ventas
-- [ ] Integración contable
-- [ ] API pública para terceros
-
-### Fase 3: Enterprise (Mayo+ 2025)
-- [ ] SSO (Single Sign-On)
-- [ ] 2FA (Two-Factor Authentication)
-- [ ] White-label
-- [ ] Integración contable automática
-- [ ] BI y analytics avanzados
-
----
-
-## ⚙️ Configuración de Entorno
-
-### Variables Requeridas (.env)
-
-```env
-# ===== DATABASE =====
-DB_USER=facturacion
-DB_PASSWORD=SecurePassword123!
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=facturacion_db
-
-# ===== BACKEND =====
-FASTAPI_ENV=development
-SECRET_KEY=your-secret-key-min-32-chars-CHANGE-IN-PRODUCTION
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
-
-# ===== REDIS =====
-REDIS_URL=redis://localhost:6379/0
-
-# ===== CELERY =====
-CELERY_BROKER_URL=redis://localhost:6379/0
-CELERY_RESULT_BACKEND=redis://localhost:6379/0
-
-# ===== SUNAT =====
-AMBIENTE_SUNAT=beta  # o 'produccion'
-RUTA_CERTIFICADO=/certs/certificado.p12
-CONTRASEÑA_CERTIFICADO=tu-password-cert  # NO hardcodear en producción
-
-# ===== FRONTEND =====
-NEXT_PUBLIC_API_URL=http://localhost:8000/api
-NEXT_PUBLIC_APP_NAME=Facturación SUNAT
-```
-
-### Secrets en Producción
-
-⚠️ **NUNCA** commits secrets a Git:
-- Usar variables de entorno en servidor
-- Usar secrets manager (AWS Secrets Manager, Hashicorp Vault)
-- En producción: usar `.env` desde deployment service
-
----
-
-## 🚢 Deployment
-
-### Producción (Recomendado)
-
-**Backend:**
-- Hosting: DigitalOcean App Platform / AWS EC2 / Railway
-- Database: AWS RDS PostgreSQL / DigitalOcean Managed
-- Redis: DigitalOcean App Platform / AWS ElastiCache
-- Workers: Same instance como backend (Celery)
-
-**Frontend:**
-- Hosting: Vercel (mejor para Next.js)
-- CDN: Vercel Edge Network (incluido)
-- Dominio: Vercel Domain / Custom domain
-
-**Stack Completo:**
-```bash
-# Build images
-docker build -t facturacion-backend:latest backend/
-docker build -t facturacion-frontend:latest frontend/
-
-# Push a registry (DockerHub, AWS ECR, etc)
-docker push facturacion-backend:latest
-docker push facturacion-frontend:latest
-
-# Deploy en DigitalOcean/AWS/Heroku usando docker-compose.prod.yml
-```
-
-### Variables de Producción (Checklist)
-
-- [ ] SECRET_KEY: Generar con `secrets.token_urlsafe(32)`
-- [ ] DB_PASSWORD: Contraseña fuerte (AWS Secrets Manager)
-- [ ] CERTIFICADO: Subido a servidor, no en Git
-- [ ] CORS_ORIGINS: Actualizado con dominio real
-- [ ] SSL/TLS: Certificado Let's Encrypt
-- [ ] Backups: Automáticos diarios de BD
-- [ ] Monitoring: Sentry para errores, DataDog para métricas
-- [ ] Logs: Centralizados en ELK Stack o CloudWatch
-
----
-
-## 🤝 Contribución
-
-### Cómo Contribuir
-
-1. Fork el repositorio
-2. Crear rama: `git checkout -b feature/descripcion`
-3. Commits: `git commit -m "feat: descripción clara"`
-4. Push: `git push origin feature/descripcion`
-5. Pull Request (describir cambios)
-
-### Estándares
-
-- Tests unitarios para nuevas features
-- Documentación actualizada
-- Seguir convenciones de código
-- Code review antes de merge
-
-### Testing
+Send it with the configured admin secret:
 
 ```bash
-# Backend tests
-pytest backend/tests/ -v
-
-# Frontend tests
-npm test
-
-# Coverage
-pytest --cov=app backend/tests/
+curl -X POST http://localhost:8000/api/admin/onboard-company \
+  -H "Content-Type: application/json" \
+  -H "x-admin-secret: YOUR_ADMIN_SECRET_KEY" \
+  -d @company.json
 ```
 
----
+The endpoint creates the company and administrator, then provisions the tenant schema in the background. Use the `owner_email` and `owner_password` supplied in the request to log in at http://localhost:3000/login.
 
-## 📚 Recursos Adicionales
+## API modules
 
-- [Documentación FastAPI](https://fastapi.tiangolo.com/)
-- [Documentación SQLAlchemy](https://docs.sqlalchemy.org/)
-- [Documentación Celery](https://docs.celeryproject.io/)
-- [Documentación Next.js](https://nextjs.org/docs)
-- [SUNAT Facturación Electrónica](https://www.sunat.gob.pe/)
+The FastAPI application is organized by business capability:
 
----
+| Module | Responsibility |
+| --- | --- |
+| `/api/auth` | Login, current user, password reset and JWT sessions |
+| `/api/admin` | Company and tenant onboarding |
+| `/api/empresa` | Company configuration, users, profile and logo |
+| `/api/clientes` | Customer CRUD and search |
+| `/api/productos` | Product/service CRUD and search |
+| `/api/cotizaciones` | Quote lifecycle, filters, PDF and conversion foundation |
+| `/api/reportes` | Quote, customer, product and executive dashboard reports |
+| `/api/importacion` | Excel templates and bulk imports |
+| `/api/chat` | Authenticated AI assistant endpoint |
+| `/api/facturas` | Backend invoicing foundation and document operations |
+| `/api/utils` | Exchange rates and seller lookups |
 
-## 📞 Soporte
+## Design decisions worth highlighting
 
-- **Documentación:** `/docs` en el repositorio
-- **Issues:** GitHub Issues
-- **Discusiones:** GitHub Discussions
-- **Email:** support@facturacion-saas.com
+### Tenant isolation at the database level
 
----
+Instead of relying only on a `tenant_id` column in every table, tenant business data is placed in an independent PostgreSQL schema. The application keeps global identity and company metadata in `public`, then switches the connection search path for tenant operations.
 
-## 📄 Licencia
+### Service-oriented backend organization
 
-MIT License - Ver archivo `LICENSE`
+Routes are kept thin and delegate business operations to services. Pydantic schemas define API contracts, SQLAlchemy models define persistence, and the AI tools use the same application capabilities instead of embedding business logic in the chat UI.
 
----
+### Commercial documents as generated artifacts
 
-## 👨‍💼 Autor
+Quotation PDFs are rendered from HTML templates with company branding, customer data, line items, taxes, totals, payment terms, bank accounts and conditions. This keeps the presentation layer separate from the quotation domain model.
 
-Desarrollado con ❤️ para empresas peruanas
+### Reports designed around decisions
 
-**Versión Actual:** 1.0.0  
-**Última actualización:** Enero 2025
+The reporting layer is not limited to raw lists. It calculates conversion, lost commercial value, average ticket, inactive customers, product performance and seller performance so the dashboard can support follow-up and sales decisions.
 
----
+## Screenshots
 
-## 🎯 Checklist para Nuevos Desarrolladores
+The interface includes a dashboard, quotation workflow, report screens, customer/product management and an AI chat window. Screenshots can be added under `docs/screenshots/` as the portfolio presentation is completed.
 
-Cuando se une alguien nuevo al proyecto:
+<!--
+Suggested screenshots:
 
-- [ ] Clonar repositorio
-- [ ] Instalar dependencias (backend + frontend)
-- [ ] Crear archivo `.env` desde `.env.example`
-- [ ] Iniciar PostgreSQL, Redis
-- [ ] Ejecutar migraciones de BD
-- [ ] Iniciar backend (FastAPI)
-- [ ] Iniciar Celery worker
-- [ ] Iniciar frontend (Next.js)
-- [ ] Verificar health check: `curl http://localhost:8000/health`
-- [ ] Leer ARQUITECTURA.md
-- [ ] Leer este README completamente
-- [ ] Hacer commit de cambio inicial
+![Executive dashboard](docs/screenshots/dashboard.png)
+![Quotation editor](docs/screenshots/quotation-editor.png)
+![Quotation PDF](docs/screenshots/quotation-pdf.png)
+![AI assistant](docs/screenshots/ai-assistant.png)
+-->
 
----
+## Project status and roadmap
 
+This repository is under active development. Current priorities include:
 
-**Happy Coding! 🚀**
+- Completing and validating the quotation workflow.
+- Improving the AI assistant's tool coverage and response reliability.
+- Expanding automated tests and end-to-end validation.
+- Adding a more complete migration workflow for tenant schemas.
+- Connecting the invoicing foundation to a complete electronic invoicing flow when that scope is ready.
+- Adding production-grade observability, rate limiting and secret management.
+
+## Notes on invoicing scope
+
+The repository contains invoice-related models, routes, PDF templates and SUNAT-oriented fields because the data model was designed to support a future billing module. The current product should still be understood primarily as a quotation platform: the visible frontend workflow and reporting experience are centered on quotations rather than completed electronic invoicing.
+
+## Author
+
+Built by [Fabio Cesar Vallejo Trujillo](https://www.linkedin.com/in/fabio-vallejo-trujillo/) as a personal full-stack software project.

@@ -1,0 +1,545 @@
+<!-- templates/cotizaciones/cotizacion.html -->
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* ── RESET ── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 10px;
+            color: #1a202c;
+            line-height: 1.5;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 18mm 20mm;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 2px solid #1a365d;
+        }
+
+        .logo-area {
+            width: 45%;
+        }
+
+        .logo {
+            max-width: 160px;
+            max-height: 70px;
+        }
+
+        .logo-placeholder {
+            width: 160px;
+            height: 60px;
+        }
+
+        .empresa-info {
+            width: 50%;
+            text-align: right;
+            line-height: 1.7;
+        }
+
+        .empresa-info .nombre {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1a365d;
+            margin-bottom: 3px;
+        }
+
+        .empresa-info p {
+            font-size: 9px;
+            color: #4a5568;
+        }
+
+        /* ── DOC BOX ── */
+        .doc-header {
+            border: 1.5px solid #1a365d;
+            padding: 8px 16px;
+            margin-bottom: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .doc-header .doc-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1a365d;
+            letter-spacing: 0.5px;
+        }
+
+        .doc-header .doc-meta {
+            text-align: right;
+            font-size: 9.5px;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .doc-header .doc-meta strong {
+            color: #1a202c;
+        }
+
+        /* ── CLIENTE ── */
+        .info-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 12px;
+        }
+
+        .info-box {
+            flex: 1;
+            padding: 8px 14px;
+            border: 1px solid #cbd5e0;
+        }
+
+        .info-box .label {
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #718096;
+            margin-bottom: 4px;
+        }
+
+        .info-box p {
+            font-size: 9px;
+            color: #2d3748;
+            margin-bottom: 1px;
+        }
+
+        .info-box .name {
+            font-size: 10px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 2px;
+        }
+
+        .info-cols {
+            display: flex;
+            gap: 16px;
+        }
+
+        .info-col {
+            flex: 1;
+        }
+
+        /* ── SALUDO ── */
+        .saludo {
+            margin-bottom: 12px;
+            padding: 6px 0;
+            font-size: 9.5px;
+            color: #4a5568;
+            line-height: 1.6;
+            font-style: italic;
+        }
+
+        /* ── TABLA ITEMS ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+
+        thead th {
+            background-color: #1a365d;
+            color: #fff;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 8.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        thead th.right {
+            text-align: right;
+        }
+
+        tbody td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 9.5px;
+            color: #2d3748;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f7fafc;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        /* ── TOTALES ── */
+        .totales-wrapper {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 16px;
+        }
+
+        .totales {
+            width: 40%;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            font-size: 9px;
+            color: #4a5568;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .total-row.final {
+            border-top: 2px solid #1a365d;
+            border-bottom: 2px solid #1a365d;
+            font-weight: 700;
+            font-size: 10.5px;
+            color: #1a365d;
+            padding: 5px 0;
+            margin-top: 3px;
+        }
+
+        .total-row span:last-child {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .total-row.final span:last-child {
+            color: #1a365d;
+        }
+
+        /* ── CONDICIONES COMERCIALES ── */
+        .condiciones {
+            margin-bottom: 18px;
+        }
+
+        .condiciones h4 {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #1a365d;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .condiciones-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+        }
+
+        .cond-item {
+            width: 50%;
+            padding: 4px 0;
+            font-size: 9.5px;
+        }
+
+        .cond-item .cond-label {
+            color: #718096;
+            font-weight: 600;
+        }
+
+        .cond-item .cond-value {
+            color: #2d3748;
+        }
+
+        /* ── CUENTAS BANCARIAS ── */
+        .bancos {
+            margin-bottom: 18px;
+        }
+
+        .bancos h4 {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #1a365d;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .bancos table th {
+            background-color: #edf2f7;
+            color: #4a5568;
+            font-size: 8px;
+            padding: 5px 8px;
+        }
+
+        .bancos table td {
+            font-size: 9px;
+            padding: 5px 8px;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        /* ── TÉRMINOS ── */
+        .terminos {
+            margin-bottom: 16px;
+            padding: 10px 14px;
+            border-left: 3px solid #cbd5e0;
+            background-color: #f7fafc;
+        }
+
+        .terminos h4 {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #4a5568;
+            margin-bottom: 6px;
+        }
+
+        .terminos p {
+            font-size: 9px;
+            line-height: 1.6;
+            color: #4a5568;
+            white-space: pre-line;
+        }
+
+        /* ── FOOTER ── */
+        .footer {
+            margin-top: 24px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            font-size: 8px;
+            color: #a0aec0;
+            line-height: 1.6;
+        }
+
+        @page {
+            size: A4;
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- ═══════════ HEADER ═══════════ -->
+        <div class="header">
+            <div class="logo-area">
+                {% if empresa.logo_url %}
+                <img src="{{ empresa.logo_url }}" alt="Logo" class="logo">
+                {% else %}
+                <div class="logo-placeholder"></div>
+                {% endif %}
+            </div>
+
+            <div class="empresa-info">
+                <div class="nombre">{{ empresa.razon_social }}</div>
+                <p><strong>RUC:</strong> {{ empresa.ruc }}</p>
+                {% if empresa.direccion %}
+                <p>{{ empresa.direccion }}</p>
+                {% endif %}
+                {% if empresa.telefono %}
+                <p>Tel: {{ empresa.telefono }}</p>
+                {% endif %}
+                {% if empresa.email %}
+                <p>{{ empresa.email }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ═══════════ DOCUMENTO ═══════════ -->
+        <div class="doc-header">
+            <div class="doc-title">{{ cotizacion.numero_cotizacion }}</div>
+            <div class="doc-meta">
+                <p><strong>Fecha:</strong> {{ cotizacion.created_at.strftime('%d/%m/%Y') }}{% if vendedor %} &middot;
+                    <strong>Vendedor:</strong> {{ vendedor.nombre }} {{ vendedor.apellido or '' }}{% endif %}</p>
+            </div>
+        </div>
+
+        <!-- ═══════════ CLIENTE ═══════════ -->
+        <div class="info-row">
+            <div class="info-box">
+                <div class="label">Datos del Cliente</div>
+                <div class="info-cols">
+                    <div class="info-col">
+                        <p class="name">{{ cliente.razon_social }}</p>
+                        <p><strong>{{ cliente.tipo_documento }}:</strong> {{ cliente.numero_documento }}</p>
+                        {% if cliente.direccion_completa %}
+                        <p>{{ cliente.direccion_completa }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="info-col">
+                        {% if cliente.telefono %}
+                        <p><strong>Tel:</strong> {{ cliente.telefono }}</p>
+                        {% endif %}
+                        {% if cliente.email %}
+                        <p><strong>Email:</strong> {{ cliente.email }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ SALUDO FORMAL ═══════════ -->
+        <div class="saludo">
+            Estimados señores de <strong>{{ cliente.razon_social }}</strong>,
+            nos es grato presentarles nuestra propuesta comercial por los siguientes productos y/o servicios:
+        </div>
+
+        <!-- ═══════════ ITEMS ═══════════ -->
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 6%;">N°</th>
+                    <th>Descripción</th>
+                    <th class="center" style="width: 10%;">Cant.</th>
+                    <th class="right" style="width: 15%;">P. Unit.</th>
+                    <th class="right" style="width: 15%;">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td class="center">{{ loop.index }}</td>
+                    <td>{{ item.producto.nombre }}</td>
+                    <td class="center">{{ item.cantidad }}</td>
+                    <td class="right">{{ '%.2f'|format(item.precio_unitario) }}</td>
+                    <td class="right">{{ '%.2f'|format(item.subtotal) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- ═══════════ TOTALES ═══════════ -->
+        <div class="totales-wrapper">
+            <div class="totales">
+                <div class="total-row">
+                    <span>Subtotal:</span>
+                    <span>{{ cotizacion.moneda }} {{ '%.2f'|format(cotizacion.subtotal) }}</span>
+                </div>
+                {% if cotizacion.descuento_total and cotizacion.descuento_total > 0 %}
+                <div class="total-row">
+                    <span>Descuento:</span>
+                    <span>-{{ cotizacion.moneda }} {{ '%.2f'|format(cotizacion.descuento_total) }}</span>
+                </div>
+                {% endif %}
+                <div class="total-row">
+                    <span>IGV (18%):</span>
+                    <span>{{ cotizacion.moneda }} {{ '%.2f'|format(cotizacion.igv_total) }}</span>
+                </div>
+                <div class="total-row final">
+                    <span>TOTAL:</span>
+                    <span>{{ cotizacion.moneda }} {{ '%.2f'|format(cotizacion.total) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════ CONDICIONES COMERCIALES ═══════════ -->
+        <div class="condiciones">
+            <h4>Condiciones Comerciales</h4>
+            <div class="condiciones-grid">
+                <div class="cond-item">
+                    <span class="cond-label">Forma de pago:</span>
+                    <span class="cond-value">{% if cotizacion.forma_pago == 'contado' %}Contado{% elif
+                        cotizacion.forma_pago == 'credito_7' %}Crédito 7 días{% elif
+                        cotizacion.forma_pago == 'credito_15' %}Crédito 15 días{% elif cotizacion.forma_pago ==
+                        'credito_30' %}Crédito 30 días{% elif cotizacion.forma_pago == 'credito_60' %}Crédito 60 días{%
+                        elif cotizacion.forma_pago == 'credito_90' %}Crédito 90 días{% elif
+                        cotizacion.forma_pago == '50_orden_50_contra_entrega' %}50% orden 50% contra entrega{% else %}Según acuerdo{% endif
+                        %}</span>
+                </div>
+                <div class="cond-item">
+                    <span class="cond-label">Moneda:</span>
+                    <span class="cond-value">{{ 'Soles (PEN)' if cotizacion.moneda == 'PEN' else 'Dólares (USD)'
+                        }}</span>
+                </div>
+                <div class="cond-item">
+                    <span class="cond-label">Validez de la oferta:</span>
+                    <span class="cond-value">{{ cotizacion.vigencia_dias }} días
+                        {% if cotizacion.fecha_vencimiento %}
+                        (hasta {{ cotizacion.fecha_vencimiento.strftime('%d/%m/%Y') }})
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="cond-item">
+                    <span class="cond-label">Tiempo de entrega:</span>
+                    <span class="cond-value">{{ cotizacion.tiempo_entrega or 'Según coordinación' }}</span>
+                </div>
+                <div class="cond-item">
+                    <span class="cond-label">Lugar de entrega:</span>
+                    <span class="cond-value">{{ cotizacion.lugar_entrega or 'Por coordinar' }}</span>
+                </div>
+                {% if cotizacion.tipo_cambio %}
+                <div class="cond-item">
+                    <span class="cond-label">Tipo de cambio:</span>
+                    <span class="cond-value">{{ '%.3f'|format(cotizacion.tipo_cambio) }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ═══════════ CUENTAS BANCARIAS ═══════════ -->
+        {% if cuentas_bancarias %}
+        <div class="bancos">
+            <h4>Datos Bancarios para Depósito / Transferencia</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Banco</th>
+                        <th>N° Cuenta</th>
+                        <th>CCI</th>
+                        <th>Moneda</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cuenta in cuentas_bancarias %}
+                    <tr>
+                        <td><strong>{{ cuenta.nombre_banco }}</strong></td>
+                        <td>{{ cuenta.numero_cuenta }}</td>
+                        <td>{{ cuenta.cci or '—' }}</td>
+                        <td>{{ 'Soles' if cuenta.moneda == 'PEN' else 'Dólares' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- ═══════════ TÉRMINOS Y CONDICIONES ═══════════ -->
+        {% if cotizacion.terminos_condiciones %}
+        <div class="terminos">
+            <h4>Términos y Condiciones</h4>
+            <p>{{ cotizacion.terminos_condiciones }}</p>
+        </div>
+        {% endif %}
+
+        <!-- ═══════════ FOOTER ═══════════ -->
+        <div class="footer">
+            <p>Este documento es una cotización y no constituye un comprobante de pago.</p>
+            <p>Los precios indicados están sujetos a variación hasta la confirmación del pedido.</p>
+            <p>{{ empresa.razon_social }} — RUC {{ empresa.ruc }}</p>
+        </div>
+
+    </div>
+</body>
+
+</html>

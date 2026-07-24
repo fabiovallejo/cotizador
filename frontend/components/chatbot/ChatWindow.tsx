@@ -72,7 +72,7 @@ export function ChatWindow() {
                     </div>
                     <div>
                         <h3 className="text-[13px] font-semibold text-gray-900 dark:text-white leading-tight">
-                            Disecodcito
+                            Asistente
                         </h3>
                         <span className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
                             <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block" />
@@ -115,7 +115,7 @@ export function ChatWindow() {
                             ¡Hola! 👋
                         </h4>
                         <p className="text-[12px] text-gray-500 dark:text-gray-400 leading-relaxed">
-                            Soy Disecodcito, tu asistente de cotizaciones. Pregúntame sobre
+                            Soy tu asistente de cotizaciones. Pregúntame sobre
                             cotizaciones, clientes, productos, reportes, o analisis de información.
                         </p>
 

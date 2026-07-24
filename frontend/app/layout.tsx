@@ -11,7 +11,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Cotizador",
-  description: "Sistema de facturación electrónica SUNAT",
+  description: "Sistema de cotizaciones",
 };
 
 export default function RootLayout({

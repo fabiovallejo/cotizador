@@ -1,0 +1,48 @@
+# Deprecated: use ..\docker-compose.yml from the repository root.
+# This file describes an older backend-only stack and is kept for reference.
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres-facturador
+    environment:
+      POSTGRES_USER: facturacion
+      POSTGRES_PASSWORD: SecurePassword123!
+      POSTGRES_DB: facturacion_db
+    ports:
+      - "5433:5432"
+    networks:
+      - facturador-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U facturacion -d facturacion_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: facturador-app
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - facturador-network
+    env_file: .env
+    command: /start.sh
+    volumes:
+      - uploads_data:/app/uploads
+    environment:
+      - PYTHONUNBUFFERED=1
+
+networks:
+  facturador-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  uploads_data:
