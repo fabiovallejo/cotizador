@@ -23,6 +23,84 @@ This project is a quotation management platform designed around a multi-tenant S
 
 The current product scope is focused on **quotations and commercial intelligence**. The data model and backend contain foundations for future invoicing and SUNAT-related workflows, but electronic invoicing is not presented as a finished feature of the current frontend experience.
 
+## Product tour
+
+The fastest way to understand the application is to follow its commercial workflow:
+
+`Master data → Quotation → PDF proposal → Dashboard and follow-up`
+
+The visual tour below is organized for a quick portfolio review. Screenshots are stored under `docs/screenshots/` and presented in the order a reviewer can understand the product fastest.
+
+<table>
+  <tr>
+    <td width="50%">
+      <strong>01 · Executive dashboard</strong><br />
+      <sub>Commercial KPIs, quotation conversion, revenue, pending follow-ups and product/customer insights.</sub><br /><br />
+      <img src="docs/screenshots/01-dashboard.png" alt="Executive dashboard" width="100%" />
+    </td>
+    <td width="50%">
+      <strong>02 · Quotation editor</strong><br />
+      <sub>Customer and product selection, line items, discounts, taxes, currency, terms and totals.</sub><br /><br />
+      <img src="docs/screenshots/02-quotation-editor.png" alt="Quotation editor" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <strong>03 · Generated quotation PDF</strong><br />
+      <sub>Branded commercial document with customer data, itemized amounts, payment terms and company information.</sub><br /><br />
+      <img src="docs/screenshots/03-quotation-pdf.png" alt="Generated quotation PDF" width="100%" />
+    </td>
+    <td width="50%">
+      <strong>04 · AI assistant</strong><br />
+      <sub>Authenticated assistant connected to customer, product, quotation, dashboard and reporting tools.</sub><br /><br />
+      <img src="docs/screenshots/04-ai-assistant.png" alt="AI assistant" width="100%" />
+    </td>
+  </tr>
+</table>
+
+### Supporting views
+
+These additional screenshots can show the breadth of the product without interrupting the main story:
+
+<table>
+  <tr>
+    <td width="50%">
+      <strong>05 · Customer management</strong><br />
+      <sub>Searchable customer records, contact information, document types and activity status.</sub><br /><br />
+      <img src="docs/screenshots/05-customer-management.png" alt="Customer management" width="100%" />
+    </td>
+    <td width="50%">
+      <strong>06 · Product and service catalog</strong><br />
+      <sub>Catalog management with prices, stock, categories, units, service items and tax configuration.</sub><br /><br />
+      <img src="docs/screenshots/06-product-catalog.png" alt="Product and service catalog" width="100%" />
+    </td>
+  </tr>
+</table>
+
+### Reporting views
+
+The reporting area can be presented with one screenshot for each business question the platform helps answer:
+
+<table>
+  <tr>
+    <td width="33%">
+      <strong>07 · Quotation performance</strong><br />
+      <sub>Conversion, quotation status, revenue, average ticket and commercial alerts.</sub><br /><br />
+      <img src="docs/screenshots/07-quotation-report.png" alt="Quotation performance report" width="100%" />
+    </td>
+    <td width="33%">
+      <strong>08 · Top products</strong><br />
+      <sub>Products ranked by quotation revenue, demand and conversion performance.</sub><br /><br />
+      <img src="docs/screenshots/08-products-report.png" alt="Top products report" width="100%" />
+    </td>
+    <td width="33%">
+      <strong>09 · Customer analysis</strong><br />
+      <sub>Customer segmentation, VIP/regular classification and inactivity indicators.</sub><br /><br />
+      <img src="docs/screenshots/09-customers-report.png" alt="Customer analysis report" width="100%" />
+    </td>
+  </tr>
+</table>
+
 ## Why this project
 
 The project was built to explore the problems that appear when a simple CRUD application grows into a business-oriented SaaS product:
@@ -291,6 +369,8 @@ This creates the shared tables in `public`, the initial `empresa_1` tenant schem
 
 There is no demo seed in the repository. The bootstrap creates database structures and document sequences, but no companies, users, products, customers, or login credentials. The `empresa_1` schema is only a structural example.
 
+For the portfolio screenshots, sample company configuration, customers and products can be created in the local Docker database outside Git. That local-only data is intentionally not committed and is not available to a fresh clone; quotations are created manually so the screenshots show the complete workflow with realistic data.
+
 Set `ADMIN_SECRET_KEY` in the root `.env`, then create the first company and administrator through the onboarding endpoint:
 
 ```http
@@ -357,19 +437,6 @@ Quotation PDFs are rendered from HTML templates with company branding, customer 
 ### Reports designed around decisions
 
 The reporting layer is not limited to raw lists. It calculates conversion, lost commercial value, average ticket, inactive customers, product performance and seller performance so the dashboard can support follow-up and sales decisions.
-
-## Screenshots
-
-The interface includes a dashboard, quotation workflow, report screens, customer/product management and an AI chat window. Screenshots can be added under `docs/screenshots/` as the portfolio presentation is completed.
-
-<!--
-Suggested screenshots:
-
-![Executive dashboard](docs/screenshots/dashboard.png)
-![Quotation editor](docs/screenshots/quotation-editor.png)
-![Quotation PDF](docs/screenshots/quotation-pdf.png)
-![AI assistant](docs/screenshots/ai-assistant.png)
--->
 
 ## Project status and roadmap
 
